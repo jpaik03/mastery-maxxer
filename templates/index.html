@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>Home</title>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="stylesheet" href="/css/styles.css" />
+        <script src="/js/script.js" defer></script>
+    </head>
+    <body>
+        <h1>Input Riot ID</h1>
+        <form id="collect-riot-id">
+            <label for="username">Username</label>
+            <input
+                type="text"
+                id="username-input"
+                name="username"
+                required
+            /><br />
+
+            <label for="tag">Tag</label>
+            <input type="text" id="tag-input" name="tag" required /><br />
+
+            <input type="submit" value="Submit" />
+        </form>
+
+        <h1>Info</h1>
+        <p>Riot ID: <span id="display-username">id</span></p>
+        <p>Tag: <span id="display-tag">#tag</span></p>
+        <p>PUUID: <span id="display-puuid">puuid</span></p>
+
+        <h1>Champion Mastery Information</h1>
+        <div id="mastery-info">Mastery data</div>
+    </body>
+</html>

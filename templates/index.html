@@ -8,28 +8,25 @@
         <script src="/js/script.js" defer></script>
     </head>
     <body>
-        <h1>Input Riot ID</h1>
+        <h1>Search Riot ID</h1>
         <form id="collect-riot-id">
-            <label for="username">Username</label>
-            <input
-                type="text"
-                id="username-input"
-                name="username"
-                required
-            /><br />
+            <label for="username">Riot ID: </label>
+            <input type="text" id="username-input" name="username" required />
 
-            <label for="tag">Tag</label>
-            <input type="text" id="tag-input" name="tag" required /><br />
+            <label for="tag">#</label>
+            <input type="text" id="tag-input" name="tag" required />
 
             <input type="submit" value="Submit" />
         </form>
 
-        <h1>Info</h1>
-        <p>Riot ID: <span id="display-username">id</span></p>
-        <p>Tag: <span id="display-tag">#tag</span></p>
-        <p>PUUID: <span id="display-puuid">puuid</span></p>
+        <h1>Profile</h1>
+        <p>
+            Riot ID: <span id="display-username">Name</span
+            ><span id="display-tag">#NA1</span>
+        </p>
+        <p>PUUID: <span id="display-puuid">Your PUUID</span></p>
 
-        <h1>Champion Mastery Information</h1>
-        <div id="mastery-info">Mastery data</div>
+        <h1>Champion Mastery</h1>
+        <div id="mastery-info">Enter your Riot ID.</div>
     </body>
 </html>

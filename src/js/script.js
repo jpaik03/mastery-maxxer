@@ -93,7 +93,7 @@ async function fetchRiotAccount(username, tag) {
 function updateRiotIdUI(data) {
     document.getElementById("display-username").textContent = data.gameName;
     document.getElementById("display-tag").textContent = `#${data.tagLine}`;
-    document.getElementById("display-puuid").textContent = data.puuid;
+    // document.getElementById("display-puuid").textContent = data.puuid;
 }
 
 /*
@@ -103,8 +103,7 @@ function updateRiotIdUI(data) {
  * Description: Calls the Riot API to retrieve the mastery data for the given
  *              PUUID.
  * Effects:     Calls getChampionsMap() to retrieve corresponding champion names
- *              from their IDs. Modifies the "mastery-info" HTML element to
- *              display the data.
+ *              from their IDs. Populates the "mastery-info" HTML table.
  */
 async function fetchMasteryInfo(puuid) {
     try {
@@ -120,9 +119,15 @@ async function fetchMasteryInfo(puuid) {
         // Call getChampionsMap() to get map of champion names from their IDs
         const championsMap = await getChampionsMap();
         
-        // Call formatChampionMastery() to get the HTML string to update the UI
-        const masteryInfo = masteryData.map(champion => formatChampionMastery(champion, championsMap)).join("");
-        document.getElementById("mastery-info").innerHTML = masteryInfo;
+        // Clear previous table data
+        const masteryTableBody = document.getElementById("mastery-info");
+        masteryTableBody.innerHTML = "";
+
+        // Populate table with mastery data
+        masteryData.forEach(champion => {
+            const row = formatChampionMasteryRow(champion, championsMap);
+            masteryTableBody.appendChild(row);
+        });
     } catch (err) {
         console.error("Error fetching mastery data:", err);
         alert("Error fetching mastery data.");
@@ -130,15 +135,14 @@ async function fetchMasteryInfo(puuid) {
 }
 
 /*
- * Name:        formatChampionMastery()
- * Arguments:   A champion object, and a map of champion IDs to names.
- * Returns:     A formatted HTML string containing the mastery info for the
- *              given champion.
- * Description: Extracts relevant champion mastery data and formats it into
- *              an HTML string.
+ * Name:        formatChampionMasteryRow()
+ * Arguments:   A champion object and a map of champion IDs to names.
+ * Returns:     A table row element containing the mastery info for the given champion.
+ * Description: Extracts relevant champion mastery data and formats it into a
+ *              table row (<tr> element).
  * Effects:     None.
  */
-function formatChampionMastery(champion, championsMap) {
+function formatChampionMasteryRow(champion, championsMap) {
     const championId = champion.championId;
     const championName = championsMap[championId] || "Champion not found";
     const championLevel = champion.championLevel;
@@ -150,19 +154,20 @@ function formatChampionMastery(champion, championsMap) {
     const overflowData = getMasteryOverflow([champion])[0];
     const gamesRequired = overflowData.gamesRequired;
 
-    return `
-        <div>
-            <p>Champion: ${championName}</p>
-            <p>Level: ${championLevel}</p>
-            <p>Points: ${championPoints}</p>
-            <p>Points since last level: ${championPointsSinceLastLevel}</p>
-            <p>Marks required for next level: ${markRequiredForNextLevel}</p>
-            <p>Current marks: ${marksEarned}</p>
-            <p>Required grade for next mark: ${gradeReq}</p>
-            <p>Marks to fix overflow: ${gamesRequired}</p>
-        </div>
-        <hr>
+    // Create table row
+    const row = document.createElement("tr");
+    row.innerHTML = `
+        <td>${championName}</td>
+        <td>${championLevel}</td>
+        <td>${championPoints}</td>
+        <td>${championPointsSinceLastLevel}</td>
+        <td>${markRequiredForNextLevel}</td>
+        <td>${marksEarned}</td>
+        <td>${gradeReq}</td>
+        <td>${gamesRequired}</td>
     `;
+    
+    return row;
 }
 
 /*

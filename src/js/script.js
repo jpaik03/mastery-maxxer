@@ -93,7 +93,6 @@ async function fetchRiotAccount(username, tag) {
 function updateRiotIdUI(data) {
     document.getElementById("display-username").textContent = data.gameName;
     document.getElementById("display-tag").textContent = `#${data.tagLine}`;
-    // document.getElementById("display-puuid").textContent = data.puuid;
 }
 
 /*
@@ -125,7 +124,7 @@ async function fetchMasteryInfo(puuid) {
 
         // Populate table with mastery data
         masteryData.forEach(champion => {
-            const row = formatChampionMasteryRow(champion, championsMap);
+            const row = formatMasteryRow(champion, championsMap);
             masteryTableBody.appendChild(row);
         });
     } catch (err) {
@@ -135,19 +134,19 @@ async function fetchMasteryInfo(puuid) {
 }
 
 /*
- * Name:        formatChampionMasteryRow()
+ * Name:        formatMasteryRow()
  * Arguments:   A champion object and a map of champion IDs to names.
  * Returns:     A table row element containing the mastery info for the given champion.
  * Description: Extracts relevant champion mastery data and formats it into a
  *              table row (<tr> element).
  * Effects:     None.
  */
-function formatChampionMasteryRow(champion, championsMap) {
+function formatMasteryRow(champion, championsMap) {
     const championId = champion.championId;
     const championName = championsMap[championId] || "Champion not found";
+    const championIconUrl = getChampionIconUrl(championName);
     const championLevel = champion.championLevel;
     const championPoints = champion.championPoints;
-    const championPointsSinceLastLevel = champion.championPointsSinceLastLevel;
     const markRequiredForNextLevel = champion.markRequiredForNextLevel;
     const marksEarned = champion.tokensEarned;
     const gradeReq = getRequiredGrade(champion);
@@ -157,10 +156,9 @@ function formatChampionMasteryRow(champion, championsMap) {
     // Create table row
     const row = document.createElement("tr");
     row.innerHTML = `
-        <td>${championName}</td>
+        <td><img src="${championIconUrl}" alt="${championName}" class="champion-icon"></td>
         <td>${championLevel}</td>
         <td>${championPoints}</td>
-        <td>${championPointsSinceLastLevel}</td>
         <td>${markRequiredForNextLevel}</td>
         <td>${marksEarned}</td>
         <td>${gradeReq}</td>
@@ -168,6 +166,38 @@ function formatChampionMasteryRow(champion, championsMap) {
     `;
     
     return row;
+}
+
+/*
+ * Name:        getChampionIconUrl()
+ * Arguments:   A string representing the champion's name.
+ * Returns:     A string containing the full URL to the champion's icon.
+ * Description: Constructs the URL to fetch the champion's image from the
+ *              DDragon CDN.
+ * Effects:     None.
+ */
+function getChampionIconUrl(championName) {
+    const version = "15.5.1";
+
+    const specialCases = {
+        "Bel'Veth": "Belveth",
+        "Cho'Gath": "Chogath",
+        "Kai'Sa": "Kaisa",
+        "Kha'Zix": "Khazix",
+        "LeBlanc": "Leblanc",
+        "Nunu & Willump": "Nunu",
+        "Renata Glasc": "Renata",
+        "Vel'Koz": "Velkoz",
+        "Wukong": "MonkeyKing",
+    };
+
+    if (specialCases[championName]) {
+        return `https://ddragon.leagueoflegends.com/cdn/${version}/img/champion/${specialCases[championName]}.png`;
+    }
+
+    const formattedName = championName.replace(/[^a-zA-Z0-9]/g, "");
+
+    return `https://ddragon.leagueoflegends.com/cdn/${version}/img/champion/${formattedName}.png`;
 }
 
 /*

@@ -1,10 +1,10 @@
 body {
     font-size: 20px;
     font-family: Helvetica, Arial, sans-serif;
-    margin: 0px;
+    margin: 20px;
 }
 table {
-    width: 80%;
+    width: 55%;
     margin: 20px auto;
     border-collapse: collapse;
     border: 1px solid #ddd;
@@ -16,18 +16,17 @@ thead {
 
 th, td {
     border: 1px solid #ddd;
-    padding: 8px 10px;
+    padding: 8px;
     text-align: center;
 }
 
-th:nth-child(1), td:nth-child(1) { width: 20%; }
-th:nth-child(2), td:nth-child(2) { width: 8%; }
-th:nth-child(3), td:nth-child(3) { width: 12%; }
-th:nth-child(4), td:nth-child(4) { width: 14%; }
-th:nth-child(5), td:nth-child(5) { width: 10%; }
-th:nth-child(6), td:nth-child(6) { width: 10%; }
-th:nth-child(7), td:nth-child(7) { width: 14%; }
-th:nth-child(8), td:nth-child(8) { width: 12%; }
+th:nth-child(1), td:nth-child(1) { width: 10%; }
+th:nth-child(2), td:nth-child(2) { width: 10%; }
+th:nth-child(3), td:nth-child(3) { width: 10%; }
+th:nth-child(4), td:nth-child(4) { width: 20%; }
+th:nth-child(5), td:nth-child(5) { width: 15%; }
+th:nth-child(6), td:nth-child(6) { width: 11%; }
+th:nth-child(7), td:nth-child(7) { width: 24%; }
 
 tbody tr:nth-child(even) {
     background-color: #f9f9f9;
@@ -35,4 +34,55 @@ tbody tr:nth-child(even) {
 
 tbody tr:hover {
     background-color: #e0e0e0;
+}
+
+.champion-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 5px;
+    display: block;
+    margin: auto;
+}
+
+@media (max-width: 1224px) {
+    table {
+        width: 90%;
+    }
+}
+
+@media (max-width: 788px) {
+    body {
+        font-size: 14px;
+    }
+    table {
+        width: 90%;
+    }
+}
+
+@media (max-width: 601px) {
+    body {
+        font-size: 12px;
+    }
+    table {
+        width: 90%;
+        margin: 10px auto;
+    }
+    .champion-icon {
+        width: 30px;
+        height: 30px;
+    }
+}
+
+@media (max-width: 531px) {
+    body {
+        font-size: 10px;
+    }
+    table {
+        width: 90%;
+        margin: 10px auto;
+    }
+    .champion-icon {
+        width: 30px;
+        height: 30px;
+    }
 }

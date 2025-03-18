@@ -1,5 +1,5 @@
 /*
- * Handle Riot ID search form submission
+ * Initialize event listeners on DOM load
  */
 document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("profile-count").addEventListener("change", updateProfileNum);
@@ -12,129 +12,84 @@ document.addEventListener("DOMContentLoaded", async () => {
  * Name:        updateProfileNum()
  * Arguments:   None.
  * Returns:     None.
- * Description: Updates the number of profile input fields based on the dropdown
+ * Description: Adjusts the number of profile input fields based on the dropdown
  *              selection.
- * Effects:     Modifies the HTML to match the selected number of profiles.
+ * Effects:     Dynamically modifies the HTML to match the selected number of
+ *              profiles.
  */
 function updateProfileNum() {
     const profileContainer = document.getElementById("profile-container");
     const selectedCount = parseInt(document.getElementById("profile-count").value, 10);
 
-    // Save existing input values before updating
+    // Save existing inputs
     const existingInputs = getExistingInputs();
 
-    // Clear existing fields
+    // Clear existing profile inputs and add the new ones
     profileContainer.innerHTML = "";
-
-    // Add the new profile input fields
     for (let i = 1; i <= selectedCount; i++) {
-        const profileDiv = createProfileInput(i, existingInputs[i - 1]);
-        profileContainer.appendChild(profileDiv);
+        profileContainer.appendChild(createProfileInput(i, existingInputs[i - 1]));
     }
 }
 
 /*
  * Name:        getExistingInputs()
  * Arguments:   None.
- * Returns:     An array of objects containing existing usernames and tags.
- * Description: Extracts the current values of the profiles before updating.
+ * Returns:     An array of objects containing usernames and tags from existing
+ *              profile fields.
+ * Description: Retrieves current values before modifying profile input fields.
  * Effects:     None.
  */
 function getExistingInputs() {
     const existingInputs = [];
     const profileEntries = document.querySelectorAll(".profile-entry");
 
-    // Collect current entries
+    // Collect and store current entries
     for (let i = 0; i < profileEntries.length; i++) {
         const entry = profileEntries[i];
         const usernameInput = entry.querySelector(".username-input");
         const tagInput = entry.querySelector(".tag-input");
 
-        // Store current entries
         existingInputs.push({
             username: usernameInput ? usernameInput.value : "",
             tag: tagInput ? tagInput.value : ""
         });
     }
-
     return existingInputs;
 }
 
 /*
  * Name:        createProfileInput()
- * Arguments:   An integer representing the profile number and an object with
- *              existing username and tag values.
- * Returns:     A <div> element containing the input fields.
- * Description: Creates a new profile input field with existing values if
- *              available.
+ * Arguments:   An integer representing the profile index and an object with
+ *              existing values.
+ * Returns:     A <div> element containing profile input fields.
+ * Description: Generates profile input fields prefilled with existing values.
  * Effects:     None.
  */
 function createProfileInput(profileNumber, existingData = {}) {
+    // Create a div element for the profile
     const profileDiv = document.createElement("div");
     profileDiv.classList.add("profile-entry");
-
-    // Look for existing values
-    const existingUsername = existingData.username || "";
-    const existingTag = existingData.tag || "";
-
-    // Update profile input fields
+    
+    // Write the data into the element
     profileDiv.innerHTML = `
         <label>Profile ${profileNumber}: </label>
-        <input type="text" class="username-input" placeholder="Username" value="${existingUsername}" required />
+        <input type="text" class="username-input" placeholder="Username" value="${existingData.username || ""}" required />
         <label>#</label>
-        <input type="text" class="tag-input" placeholder="Tag" value="${existingTag}" required />
+        <input type="text" class="tag-input" placeholder="Tag" value="${existingData.tag || ""}" required />
     `;
 
     return profileDiv;
 }
 
 /*
- * Name:        handleRiotIdSubmit()
- * Arguments:   An event object from the form submission.
- * Returns:     None.
- * Description: Handles form submission, retrieves PUUIDs of each profile, and
- *              updates the UI.
- * Effects:     Calls fetchRiotAccount() to get profile data and updates
- *              profile-display.
- */
-async function handleRiotIdSubmit(event) {
-    event.preventDefault();
-
-    const profileInputs = document.querySelectorAll(".profile-entry");
-    const profiles = [];
-
-    // Collect input fields in an array
-    for (let i = 0; i < profileInputs.length; i++) {
-        const username = profileInputs[i].querySelector(".username-input").value.trim();
-        const tag = profileInputs[i].querySelector(".tag-input").value.trim();
-
-        if (!username || !tag) {
-            alert(`Please enter a valid Riot ID for Profile ${i + 1}.`);
-            return;
-        }
-        profiles.push({ username, tag });
-    }
-
-    // Fetch account data for each profile
-    const profileData = await Promise.all(profiles.map(profile => fetchRiotAccount(profile.username, profile.tag)));
-    
-    const validProfiles = profileData.filter(data => !data.error); 
-    if (validProfiles.length === 0) {
-        alert("Failed to fetch data for all profiles.");
-        return;
-    }
-
-    updateProfileDisplay(validProfiles);
-}
-
-/*
  * Name:        fetchRiotAccount()
- * Arguments:   Two strings representing the player's username and tag.
- * Returns:     A promise resolving to an object containing Riot ID information.
+ * Arguments:   Strings representing a player's username and tag.
+ * Returns:     A promise resolving to an object containing Riot ID data.
  * Description: Calls the Riot API to fetch the PUUID using username and tag.
  * Effects:     None.
  */
 async function fetchRiotAccount(username, tag) {
+    // Call the Riot API to fetch this profile's PUUID
     try {
         const response = await fetch(`/api/account-by-riot-id?username=${encodeURIComponent(username)}&tag=${encodeURIComponent(tag)}`);
         return await response.json();
@@ -145,49 +100,53 @@ async function fetchRiotAccount(username, tag) {
 }
 
 /*
- * Name:        updateProfileDisplay()
- * Arguments:   An array of objects containing Riot ID information.
- * Returns:     None.
- * Description: Updates the UI to display the Riot ID names of the profiles
- *              being compared.
- * Effects:     Modifies the "profile-display" section.
+ * Name:        getProfilesWithPUUIDs()
+ * Arguments:   None.
+ * Returns:     An array of objects containing gameName, tagLine, and PUUID.
+ * Description: Retrieves PUUIDs for profiles that have both username and tag
+ *              filled.
+ * Effects:     Calls Riot API.
  */
-function updateProfileDisplay(profiles) {
-    const profileDisplay = document.getElementById("profile-display");
-    profileDisplay.innerHTML = profiles.map(profile => `
-        <p>Riot ID: ${profile.gameName}<span>#${profile.tagLine}</span></p>
-    `).join("");
+async function getProfilesWithPUUIDs() {
+    const profiles = [];
+
+    for (const entry of document.querySelectorAll(".profile-entry")) {
+        const username = entry.querySelector(".username-input").value.trim();
+        const tag = entry.querySelector(".tag-input").value.trim();
+
+        // Skip entries that are not fully filled in
+        if (!username || !tag) {
+            continue;
+        }
+
+        // Fetch account data
+        const profileData = await fetchRiotAccount(username, tag);
+        if (!profileData.error) {
+            profiles.push({
+                gameName: profileData.gameName,
+                tagLine: profileData.tagLine,
+                puuid: profileData.puuid
+            });
+        }
+    }
+    return profiles;
 }
 
 /*
  * Name:        populateChampionDropdown()
  * Arguments:   None.
  * Returns:     None.
- * Description: Fetches champion data and fills the champion dropdown.
- * Effects:     Modifies the "champion-input" select element with champion
- *              options.
+ * Description: Retrieves and fills the champion dropdown with an alphabetised
+ *              list.
+ * Effects:     Modifies the "champion-input" select element.
  */
 async function populateChampionDropdown() {
     try {
         const championDropdown = document.getElementById("champion-input");
         const champions = await getChampionsList();
 
-        // Clear existing options
-        championDropdown.innerHTML = "";
-
-        // Add a default option
-        const defaultOption = document.createElement("option");
-        defaultOption.textContent = "Select a Champion";
-        defaultOption.value = "";
-        championDropdown.appendChild(defaultOption);
-
-        // Add each champion as an option
-        champions.forEach(champion => {
-            const option = document.createElement("option");
-            option.value = champion;
-            option.textContent = champion;
-            championDropdown.appendChild(option);
-        });
+        // Populate dropdown with sorted champion names
+        championDropdown.innerHTML = `<option value="">Select a Champion</option>` + champions.map(champion => `<option value="${champion}">${champion}</option>`).join("");
     } catch (err) {
         console.error("Error fetching champions:", err);
     }
@@ -196,17 +155,17 @@ async function populateChampionDropdown() {
 /*
  * Name:        getChampionsList()
  * Arguments:   None.
- * Returns:     An array of champion names.
+ * Returns:     An array of champion names sorted alphabetically.
  * Description: Retrieves the latest champion list from Data Dragon.
  * Effects:     Fetches champion data from Riot API.
  */
 async function getChampionsList() {
     try {
-        // Fetch latest champion data using the optimized function
+        // Fetch champion data
         const championsMap = await getChampionsMap();
 
-        // Extract and return the correct champion names
-        return Object.values(championsMap).sort((a, b) => a.localeCompare(b));
+        // Return alphabetised champion names
+        return Object.values(championsMap).sort();
     } catch (err) {
         console.error("Error fetching champions:", err);
         return [];
@@ -216,21 +175,19 @@ async function getChampionsList() {
 /*
  * Name:        getChampionsMap()
  * Arguments:   None.
- * Returns:     A string map where the keys are champion IDs and values are
- *              champion names.
- * Description: Retrieves a cached map of champion IDs to names.
- * Effects:     Calls getLatestDDragon() if champion data is not yet cached.
+ * Returns:     A mapping of champion IDs to their correct champion names.
+ * Description: Retrieves cached champion data, refreshing if outdated.
+ * Effects:     Calls Data Dragon API if necessary.
  */
 async function getChampionsMap() {
     // Call helper function to call from API
     const champions = await getLatestDDragon();
 
-    // Create the map
+    // Create and return the map
     const championsMap = {};
     for (const champ in champions) {
         championsMap[champions[champ].key] = champions[champ].name;
     }
-
     return championsMap;
 }
 
@@ -239,33 +196,23 @@ async function getChampionsMap() {
  * Arguments:   None.
  * Returns:     A promise resolving to an object containing champion names and
  *              IDs.
- * Description: Fetches the latest champion data from the Data Dragon API.
- *              Caches the retrieved data, refreshing when a new patch is
- *              available.
- * Effects:     Calls Riot API if cache is empty or outdated. Stores fetched
- *              champion data in the global "championJson" variable.
+ * Description: Fetches champion data from Data Dragon and caches results.
+ * Effects:     Calls Riot API if cached data is missing or outdated.
  */
-let championJson = {};
-let cachedVersion = "";
+let championJson = {}, cachedVersion = "";
 async function getLatestDDragon() {
     try {
         // Get latest version
-        const versionResponse = await fetch("https://ddragon.leagueoflegends.com/api/versions.json");
-        const versions = await versionResponse.json();
-        const latestVersion = versions[0];
+        const latestVersion = (await (await fetch("https://ddragon.leagueoflegends.com/api/versions.json")).json())[0];
 
         // If cache exists and version is the same, return cache
-        if (Object.keys(championJson).length > 0 && cachedVersion === latestVersion) {
+        if (championJson && (cachedVersion === latestVersion)) {
             return championJson;
         }
 
-        // Otherwise, update cache with new version
-        const ddragonResponse = await fetch(`https://ddragon.leagueoflegends.com/cdn/${latestVersion}/data/en_US/champion.json`);
-        const ddragonData = await ddragonResponse.json();
+        // Update cache and return new version
         cachedVersion = latestVersion;
-
-        // Return the JSON containing the data
-        championJson = ddragonData.data;
+        championJson = (await (await fetch(`https://ddragon.leagueoflegends.com/cdn/${latestVersion}/data/en_US/champion.json`)).json()).data;
         return championJson;
     } catch (err) {
         console.error("Error fetching from DDragon API:", err);
@@ -277,19 +224,24 @@ async function getLatestDDragon() {
  * Name:        fetchAllProfilesMastery()
  * Arguments:   None.
  * Returns:     None.
- * Description: Fetches and displays mastery info for the selected champion
- *              across all entered profiles.
- * Effects:     Updates the mastery table.
+ * Description: Fetches mastery data for a selected champion across all entered
+ *              profiles.
+ * Effects:     Updates the mastery table dynamically.
  */
 async function fetchAllProfilesMastery() {
     const championId = await getSelectedChampionId();
-    if (!championId) return;
-
+    if (!championId) {
+        return;
+    }
     const profiles = await getProfilesWithPUUIDs();
-    if (!profiles.length) return;
+    if (!profiles.length) {
+        return;
+    }
 
-    const masteryData = await getMasteryDataForProfiles(profiles, championId);
-
+    // Fetch mastery data for each profile
+    const masteryData = await Promise.all(profiles.map(profile => fetchAChampionMastery(profile.puuid, championId)));
+    
+    // Update the table with data
     updateMasteryTable(masteryData, profiles);
 }
 
@@ -297,7 +249,7 @@ async function fetchAllProfilesMastery() {
  * Name:        getSelectedChampionId()
  * Arguments:   None.
  * Returns:     The champion ID if found, otherwise null.
- * Description: Fetches the selected champion’s ID from the dropdown.
+ * Description: Retrieves the selected champion's ID based on its name.
  * Effects:     None.
  */
 async function getSelectedChampionId() {
@@ -307,75 +259,29 @@ async function getSelectedChampionId() {
         return null;
     }
 
+    // Find the correct champion based on its name
     const championsMap = await getChampionsMap();
     const championId = Object.keys(championsMap).find(key => championsMap[key] === championName);
 
     if (!championId) {
         alert("Error: Champion ID not found.");
-        return null;
     }
 
     return championId;
 }
 
 /*
- * Name:        getProfilesWithPUUIDs()
- * Arguments:   None.
- * Returns:     An array of profile objects with gameName, tagLine, and PUUID.
- * Description: Fetches PUUIDs for all entered profiles. Ignores incomplete entries.
- * Effects:     Calls Riot API.
- */
-async function getProfilesWithPUUIDs() {
-    const profileEntries = document.querySelectorAll(".profile-entry");
-    const profiles = [];
-
-    for (const entry of profileEntries) {
-        const username = entry.querySelector(".username-input").value.trim();
-        const tag = entry.querySelector(".tag-input").value.trim();
-
-        // Skip empty entries (only process if both fields are filled)
-        if (!username || !tag) {
-            continue;
-        }
-
-        const profileData = await fetchRiotAccount(username, tag);
-        if (profileData.error) {
-            console.error(`Failed to fetch data for ${username}#${tag}. Skipping.`);
-            continue;
-        }
-
-        profiles.push({
-            gameName: profileData.gameName,
-            tagLine: profileData.tagLine,
-            puuid: profileData.puuid
-        });
-    }
-
-    return profiles;
-}
-
-/*
- * Name:        getMasteryDataForProfiles()
- * Arguments:   An array of profile objects and a champion ID.
- * Returns:     An array of mastery data objects.
- * Description: Fetches champion mastery data for all profiles.
- * Effects:     Calls Riot API.
- */
-async function getMasteryDataForProfiles(profiles, championId) {
-    return await Promise.all(profiles.map(profile => fetchAChampionMastery(profile.puuid, championId)));
-}
-
-/*
  * Name:        fetchAChampionMastery()
- * Arguments:   A string representing the player's unique identifier (PUUID)
- *              and an integer for the champion ID.
+ * Arguments:   A string representing the player's PUUID and an integer for the
+ *              champion ID.
  * Returns:     Mastery data for the given champion.
- * Description: Calls the Riot API to retrieve the mastery data for the given
- *              champion and PUUID.
+ * Description: Calls the Riot API to retrieve the mastery data for the
+ *              specified champion.
  * Effects:     None.
  */
 async function fetchAChampionMastery(puuid, champId) {
     try {
+        // Call the API the mastery info for the inputted profile and champion
         const response = await fetch(`/api/a-champion-mastery?puuid=${puuid}&championId=${champId}`);
         return await response.json();
     } catch (err) {
@@ -388,36 +294,29 @@ async function fetchAChampionMastery(puuid, champId) {
  * Name:        updateMasteryTable()
  * Arguments:   An array of mastery data and an array of profile data.
  * Returns:     None.
- * Description: Populates the mastery table with champion mastery data for each
- *              profile, sorted by mastery points in descending order.
- * Effects:     Updates the HTML table dynamically.
+ * Description: Updates the mastery table with data sorted by mastery points in
+ *              descending order.
+ * Effects:     Dynamically modifies the HTML table content.
  */
 function updateMasteryTable(masteryData, profiles) {
     const masteryTableBody = document.getElementById("mastery-info");
     masteryTableBody.innerHTML = "";
 
-    // Combine masteryData with profiles to maintain correct association
-    const combinedData = masteryData.map((mastery, index) => ({
-        profile: profiles[index],
-        championLevel: mastery?.championLevel || 0,
-        championPoints: mastery?.championPoints || 0,
-        marksRequired: mastery?.markRequiredForNextLevel || 0,
-        tokensEarned: mastery?.tokensEarned || 0
-    }));
-
-    // Sort by champion points in descending order
-    combinedData.sort((a, b) => b.championPoints - a.championPoints);
-
-    // Populate table
-    combinedData.forEach(({ profile, championLevel, championPoints, marksRequired, tokensEarned }) => {
-        const row = document.createElement("tr");
-        row.innerHTML = `
-            <td>${profile.gameName}#${profile.tagLine}</td>
-            <td>${championLevel}</td>
-            <td>${championPoints}</td>
-            <td>${marksRequired}</td>
-            <td>${tokensEarned}</td>
-        `;
-        masteryTableBody.appendChild(row);
-    });
+    // Process and sort mastery data
+    masteryData
+        .map((mastery, index) => ({
+            profile: profiles[index],
+            level: mastery?.championLevel || 0,
+            points: mastery?.championPoints || 0
+        }))
+        // Sort in descending order
+        .sort((a, b) => b.points - a.points)
+        .forEach(({ profile, level, points }) => {
+            masteryTableBody.innerHTML += `
+                <tr>
+                    <td>${profile.gameName}#${profile.tagLine}</td>
+                    <td>${level}</td>
+                    <td>${points}</td>
+                </tr>`;
+        });
 }

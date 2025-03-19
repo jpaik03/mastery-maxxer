@@ -95,6 +95,34 @@ app.get("/api/a-champion-mastery", async (req, res) => {
     }
 });
 
+// Get match IDs by PUUID
+app.get("/api/match-history", async (req, res) => {
+    try {
+        const { puuid, count = 20 } = req.query;
+        const url = `https://americas.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids?start=0&count=${count}&api_key=${API_KEY}`;
+        
+        const response = await axios.get(url);
+        res.json(response.data);
+    } catch (error) {
+        console.error(`Error fetching match history for PUUID ${puuid}:`, error);
+        res.status(500).json({ error: "Failed to fetch match history" });
+    }
+});
+
+// Get a match info by match ID
+app.get("/api/match-info", async (req, res) => {
+    try {
+        const { matchId } = req.query;
+        const url = `https://americas.api.riotgames.com/lol/match/v5/matches/${matchId}?api_key=${API_KEY}`;
+        
+        const response = await axios.get(url);
+        res.json(response.data);
+    } catch (error) {
+        console.error(`Error fetching match details for ${matchId}:`, error);
+        res.status(500).json({ error: "Failed to fetch match details" });
+    }
+});
+
 // Route for homepage
 app.get("/MasteryOverflow", (req, res) => {
     res.sendFile(path.join(__dirname, "public", "MasteryOverflow.html"));

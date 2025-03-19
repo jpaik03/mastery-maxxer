@@ -4,7 +4,7 @@
         <title>LoL Comparer</title>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <link rel="stylesheet" href="/css/styles.css" />
+        <link rel="stylesheet" href="/css/Comparerstyles.css" />
         <script src="/js/Comparer.js" defer></script>
     </head>
     <body>
@@ -30,12 +30,20 @@
         <button type="button" id="fetch-mastery">Compare!</button>
 
         <h1>Champion Mastery Comparison</h1>
+        <img
+            id="champion-icon"
+            src=""
+            alt="Champion Icon"
+            class="champion-icon"
+            style="display: none"
+        />
         <table id="mastery-comparison">
             <thead>
                 <tr>
                     <th>Profile</th>
                     <th>Level</th>
                     <th>Points</th>
+                    <th>Recent Matches</th>
                 </tr>
             </thead>
             <tbody id="mastery-info">

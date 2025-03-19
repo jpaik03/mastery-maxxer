@@ -230,19 +230,151 @@ async function getLatestDDragon() {
  */
 async function fetchAllProfilesMastery() {
     const championId = await getSelectedChampionId();
-    if (!championId) {
-        return;
-    }
+    if (!championId) return;
+
     const profiles = await getProfilesWithPUUIDs();
-    if (!profiles.length) {
-        return;
+    if (!profiles.length) return;
+
+    // Update champion icon
+    const championName = document.getElementById("champion-input").value;
+    const championIconUrl = getChampionIconUrl(championName);
+    const championIcon = document.getElementById("champion-icon");
+
+    championIcon.src = championIconUrl;
+    championIcon.alt = championName;
+    championIcon.style.display = "block";
+
+    // Fetch mastery data and update table
+    const masteryData = await Promise.all(profiles.map(profile => fetchAChampionMastery(profile.puuid, championId)));
+    updateMasteryTable(masteryData, profiles, championId);
+}
+
+/*
+ * Name:        fetchAChampionMastery()
+ * Arguments:   A string representing the player's PUUID and an integer for the
+ *              champion ID.
+ * Returns:     Mastery data for the given champion.
+ * Description: Calls the Riot API to retrieve the mastery data for the
+ *              specified champion.
+ * Effects:     None.
+ */
+async function fetchAChampionMastery(puuid, champId) {
+    try {
+        // Call the API the mastery info for the inputted profile and champion
+        const response = await fetch(`/api/a-champion-mastery?puuid=${puuid}&championId=${champId}`);
+        return await response.json();
+    } catch (err) {
+        console.error("Error fetching champion mastery:", err);
+        return { error: "Failed to fetch mastery data" };
+    }
+}
+
+/*
+ * Name:        updateMasteryTable()
+ * Arguments:   An array of mastery data, an array of profile data, and a champion ID.
+ * Returns:     None.
+ * Description: Updates the mastery table with sorted mastery points and win/loss history.
+ * Effects:     Dynamically modifies the HTML table content.
+ */
+async function updateMasteryTable(masteryData, profiles, championId) {
+    const masteryTableBody = document.getElementById("mastery-info");
+    masteryTableBody.innerHTML = "";
+
+    // Fetch win/loss history for each profile in parallel
+    const winLossHistories = await Promise.all(profiles.map(profile => getWinLossHistory(profile.puuid, championId)));
+
+    // Process, combine, and sort mastery data
+    const combinedData = masteryData.map((mastery, index) => ({
+        profile: profiles[index],
+        level: mastery?.championLevel || 0,
+        points: mastery?.championPoints || 0,
+        winLoss: winLossHistories[index].join(" ")
+    }));
+
+    // Sort by mastery points in descending order
+    combinedData.sort((a, b) => b.points - a.points);
+
+    // Populate table
+    combinedData.forEach(({ profile, level, points, winLoss }) => {
+        masteryTableBody.innerHTML += `
+            <tr>
+                <td>${profile.gameName}#${profile.tagLine}</td>
+                <td>${level}</td>
+                <td>${points}</td>
+                <td>${winLoss}</td>
+            </tr>`;
+    });
+}
+
+/*
+ * Name:        fetchMatchHistory()
+ * Arguments:   A string representing the a player's PUUID.
+ * Returns:     An array of match IDs.
+ * Description: Retrieves the last 10 match IDs for the given PUUID.
+ * Effects:     Calls the Riot API.
+ */
+async function fetchMatchHistory(puuid) {
+    try {
+        const response = await fetch(`/api/match-history?puuid=${puuid}&count=20`);
+        return await response.json();
+    } catch (err) {
+        console.error(`Error fetching match history for PUUID ${puuid}:`, err);
+        return [];
+    }
+}
+
+/*
+ * Name:        fetchMatchDetails()
+ * Arguments:   A string representing the match ID.
+ * Returns:     An object containing match details.
+ * Description: Calls the Riot API to fetch data for a specific match.
+ * Effects:     None.
+ */
+async function fetchMatchDetails(matchId) {
+    try {
+        const response = await fetch(`/api/match-info?matchId=${matchId}`);
+        return await response.json();
+    } catch (err) {
+        console.error(`Error fetching match details for ${matchId}:`, err);
+        return null;
+    }
+}
+
+/*
+ * Name:        getWinLossHistory()
+ * Arguments:   A player's PUUID and the selected champion ID.
+ * Returns:     An array of "W" or "L" for the last 10 matches played on that
+ *              champion.
+ * Description: Extracts the last 10 match results for the selected champion.
+ * Effects:     Calls fetchMatchHistory() and fetchMatchDetails().
+ */
+async function getWinLossHistory(puuid, championId) {
+    const matchIds = await fetchMatchHistory(puuid);
+    if (!matchIds || matchIds.length === 0) {
+        return ["No recent matches found."];
     }
 
-    // Fetch mastery data for each profile
-    const masteryData = await Promise.all(profiles.map(profile => fetchAChampionMastery(profile.puuid, championId)));
-    
-    // Update the table with data
-    updateMasteryTable(masteryData, profiles);
+    const results = [];
+    for (let i = 0; i < matchIds.length; i++) {
+        const matchId = matchIds[i];
+
+        // Fetch match details
+        const matchData = await fetchMatchDetails(matchId);
+        if (!matchData?.info?.participants) continue;
+
+        // Find the player in the match
+        const player = matchData.info.participants.find(p => p.puuid === puuid);
+
+        if (player?.championId === parseInt(championId, 10)) {
+            results.push(player.win ? "W" : "L");
+        }
+
+        // Break early if we already have 10 results
+        if (results.length >= 10) {
+            break;
+        }
+    }
+    return results.length ? results : ["No recent matches found."];
 }
 
 /*
@@ -271,52 +403,31 @@ async function getSelectedChampionId() {
 }
 
 /*
- * Name:        fetchAChampionMastery()
- * Arguments:   A string representing the player's PUUID and an integer for the
- *              champion ID.
- * Returns:     Mastery data for the given champion.
- * Description: Calls the Riot API to retrieve the mastery data for the
- *              specified champion.
+ * Name:        getChampionIconUrl()
+ * Arguments:   A string representing the champion's name.
+ * Returns:     A string containing the full URL to the champion's icon.
+ * Description: Constructs the URL to fetch the champion's image from the
+ *              DDragon CDN.
  * Effects:     None.
  */
-async function fetchAChampionMastery(puuid, champId) {
-    try {
-        // Call the API the mastery info for the inputted profile and champion
-        const response = await fetch(`/api/a-champion-mastery?puuid=${puuid}&championId=${champId}`);
-        return await response.json();
-    } catch (err) {
-        console.error("Error fetching champion mastery:", err);
-        return { error: "Failed to fetch mastery data" };
-    }
-}
+function getChampionIconUrl(championName) {
+    const version = "15.5.1";
 
-/*
- * Name:        updateMasteryTable()
- * Arguments:   An array of mastery data and an array of profile data.
- * Returns:     None.
- * Description: Updates the mastery table with data sorted by mastery points in
- *              descending order.
- * Effects:     Dynamically modifies the HTML table content.
- */
-function updateMasteryTable(masteryData, profiles) {
-    const masteryTableBody = document.getElementById("mastery-info");
-    masteryTableBody.innerHTML = "";
+    // Special cases
+    const specialCases = {
+        "Bel'Veth": "Belveth",
+        "Cho'Gath": "Chogath",
+        "Kai'Sa": "Kaisa",
+        "Kha'Zix": "Khazix",
+        "LeBlanc": "Leblanc",
+        "Nunu & Willump": "Nunu",
+        "Renata Glasc": "Renata",
+        "Vel'Koz": "Velkoz",
+        "Wukong": "MonkeyKing"
+    };
 
-    // Process and sort mastery data
-    masteryData
-        .map((mastery, index) => ({
-            profile: profiles[index],
-            level: mastery?.championLevel || 0,
-            points: mastery?.championPoints || 0
-        }))
-        // Sort in descending order
-        .sort((a, b) => b.points - a.points)
-        .forEach(({ profile, level, points }) => {
-            masteryTableBody.innerHTML += `
-                <tr>
-                    <td>${profile.gameName}#${profile.tagLine}</td>
-                    <td>${level}</td>
-                    <td>${points}</td>
-                </tr>`;
-        });
+    // Check if champion is in special cases, else format normally
+    const formattedName = specialCases[championName] || championName.replace(/[^a-zA-Z0-9]/g, "");
+
+    return `https://ddragon.leagueoflegends.com/cdn/${version}/img/champion/${formattedName}.png`;
 }

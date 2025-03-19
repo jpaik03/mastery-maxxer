@@ -153,6 +153,9 @@ function formatMasteryRow(champion, championsMap) {
     const overflowData = getMasteryOverflow([champion])[0];
     const gamesRequired = overflowData.gamesRequired;
 
+    const gradeColor = gradeReq === 'S- or better' ? '#FF0000' : '#000000';
+    const overflowColor = gamesRequired === 0 ? '#000000' : '#FF0000';
+
     // Create table row
     const row = document.createElement("tr");
     row.innerHTML = `
@@ -161,8 +164,8 @@ function formatMasteryRow(champion, championsMap) {
         <td>${championPoints}</td>
         <td>${markRequiredForNextLevel}</td>
         <td>${marksEarned}</td>
-        <td>${gradeReq}</td>
-        <td>${gamesRequired}</td>
+        <td style="color: ${gradeColor};">${gradeReq}</td>
+        <td style="color: ${overflowColor};">${gamesRequired}</td>
     `;
     
     return row;

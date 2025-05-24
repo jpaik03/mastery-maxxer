@@ -1,6 +1,10 @@
+@font-face {
+    font-family: 'Beaufort';
+    src: url('/fonts/BeaufortLoL/BeaufortLOL-Regular.otf');
+}
 body {
     font-size: 20px;
-    font-family: Helvetica, Arial, sans-serif;
+    font-family: 'Beaufort', Helvetica, Arial, sans-serif;
     margin: 20px;
 }
 table {

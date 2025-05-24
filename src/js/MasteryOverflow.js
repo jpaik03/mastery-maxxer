@@ -147,14 +147,17 @@ function formatMasteryRow(champion, championsMap) {
     const championIconUrl = getChampionIconUrl(championName);
     const championLevel = champion.championLevel;
     const championPoints = champion.championPoints;
-    const markRequiredForNextLevel = champion.markRequiredForNextLevel;
     const marksEarned = champion.tokensEarned;
+    const marksRequiredForNextLevel = champion.markRequiredForNextLevel;
+    const numGamesReq = champion.nextSeasonMilestone?.totalGamesRequires;
     const gradeReq = getRequiredGrade(champion);
+    const nextReward = champion.nextSeasonMilestone?.rewardMarks;
+    const rewardText = nextReward === 1 ? "1 mark" : `${nextReward} marks`;
     const overflowData = getMasteryOverflow([champion])[0];
-    const gamesRequired = overflowData.gamesRequired;
+    const limitingFactor = overflowData.limitingFactor;
 
-    const gradeColor = gradeReq === 'S- or better' ? '#FF0000' : '#000000';
-    const overflowColor = gamesRequired === 0 ? '#000000' : '#FF0000';
+    const gradeColor = gradeReq === 'S-' ? '#FF0000' : '#000000';
+    const limitingColor = limitingFactor.includes("mark") ? '#FF0000' : '#000000';
 
     // Create table row
     const row = document.createElement("tr");
@@ -162,10 +165,9 @@ function formatMasteryRow(champion, championsMap) {
         <td><img src="${championIconUrl}" alt="${championName}" class="champion-icon"></td>
         <td>${championLevel}</td>
         <td>${championPoints}</td>
-        <td>${markRequiredForNextLevel}</td>
-        <td>${marksEarned}</td>
-        <td style="color: ${gradeColor};">${gradeReq}</td>
-        <td style="color: ${overflowColor};">${gamesRequired}</td>
+        <td>${marksEarned}/${marksRequiredForNextLevel}</td>
+        <td style="color:${gradeColor}">${numGamesReq} ${gradeReq} earns ${rewardText}</td>
+        <td style="color:${limitingColor}">${limitingFactor}</td>
     `;
     
     return row;
@@ -212,7 +214,7 @@ function getChampionIconUrl(championName) {
  */
 function getRequiredGrade(champion) {
     const nextMarkGrade = champion.nextSeasonMilestone?.requireGradeCounts || {};
-    return nextMarkGrade["S-"] ? `S- or better` : `A- or better`;
+    return nextMarkGrade["S-"] ? `S-` : `A-`;
 }
 
 /*
@@ -227,7 +229,7 @@ function getRequiredGrade(champion) {
  */
 function getMasteryOverflow(masteryData) {
     return masteryData.map(champion => {
-        const { championId, championPoints, championLevel, tokensEarned } = champion;
+        const { championId, championPoints, championLevel, tokensEarned, championPointsUntilNextLevel } = champion;
 
         // Determine max reachable level based on current mastery points
         const newLevel = getMaxReachableLevel(championPoints, championLevel);
@@ -238,10 +240,23 @@ function getMasteryOverflow(masteryData) {
         // Subtract already-earned marks
         const marksNeeded = Math.max(0, totalMarksNeeded - tokensEarned);
 
+        const pointsRemaining = Math.max(0, championPointsUntilNextLevel);
+
+        let limitingFactor = 'Maxed';
+        if (pointsRemaining > 0 && marksNeeded > 0) {
+            limitingFactor = `${marksNeeded} mark${marksNeeded !== 1 ? 's' : ''} AND ${pointsRemaining} points`;
+        } else if (marksNeeded > 0) {
+            limitingFactor = `${marksNeeded} mark${marksNeeded !== 1 ? 's' : ''}`;
+        } else if (pointsRemaining > 0) {
+            limitingFactor = `${pointsRemaining} points`;
+        }
+
         return {
             championId,
             marksNeeded,
-            gamesRequired: marksNeeded
+            gamesRequired: marksNeeded,
+            pointsRemaining,
+            limitingFactor
         };
     });
 }

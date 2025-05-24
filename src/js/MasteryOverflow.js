@@ -147,6 +147,7 @@ function formatMasteryRow(champion, championsMap) {
     const championIconUrl = getChampionIconUrl(championName);
     const championLevel = champion.championLevel;
     const championPoints = champion.championPoints;
+    const pointsNeeded = championPoints + champion.championPointsUntilNextLevel;
     const marksEarned = champion.tokensEarned;
     const marksRequiredForNextLevel = champion.markRequiredForNextLevel;
     const numGamesReq = champion.nextSeasonMilestone?.totalGamesRequires;
@@ -164,8 +165,8 @@ function formatMasteryRow(champion, championsMap) {
     row.innerHTML = `
         <td><img src="${championIconUrl}" alt="${championName}" class="champion-icon"></td>
         <td>${championLevel}</td>
-        <td>${championPoints}</td>
-        <td>${marksEarned}/${marksRequiredForNextLevel}</td>
+        <td>${championPoints}<span style="color:#999999">/${pointsNeeded}</td>
+        <td>${marksEarned}<span style="color:#999999">/${marksRequiredForNextLevel}</td>
         <td style="color:${gradeColor}">${numGamesReq} ${gradeReq} earns ${rewardText}</td>
         <td style="color:${limitingColor}">${limitingFactor}</td>
     `;
@@ -229,7 +230,7 @@ function getRequiredGrade(champion) {
  */
 function getMasteryOverflow(masteryData) {
     return masteryData.map(champion => {
-        const { championId, championPoints, championLevel, tokensEarned, championPointsUntilNextLevel } = champion;
+        const { championId, championPoints, pointsNeeded, championLevel, tokensEarned, championPointsUntilNextLevel } = champion;
 
         // Determine max reachable level based on current mastery points
         const newLevel = getMaxReachableLevel(championPoints, championLevel);

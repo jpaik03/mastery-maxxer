@@ -4,6 +4,7 @@
         <title>Mastery Overflow</title>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="stylesheet" href="/css/base.css" />
         <link rel="stylesheet" href="/css/MOstyles.css" />
         <script src="/js/MasteryOverflow.js" defer></script>
     </head>
@@ -11,10 +12,15 @@
         <h1>Search Riot ID</h1>
         <form id="collect-riot-id">
             <label for="username-input">Riot ID: </label>
-            <input type="text" id="username-input" name="username" />
+            <input
+                type="text"
+                id="username-input"
+                name="username"
+                placeholder="Username"
+            />
 
             <label for="tag-input">#</label>
-            <input type="text" id="tag-input" name="tag" />
+            <input type="text" id="tag-input" name="tag" placeholder="Tag" />
 
             <input type="submit" value="Submit" />
         </form>

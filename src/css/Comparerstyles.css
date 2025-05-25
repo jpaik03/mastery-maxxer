@@ -1,23 +1,5 @@
-body {
-    font-size: 20px;
-    font-family: Helvetica, Arial, sans-serif;
-    margin: 20px;
-}
 table {
     width: 55%;
-    margin: 20px auto;
-    border-collapse: collapse;
-    border: 1px solid #ddd;
-}
-
-thead {
-    background-color: #f4f4f4;
-}
-
-th, td {
-    border: 1px solid #ddd;
-    padding: 8px;
-    text-align: center;
 }
 
 th:nth-child(1), td:nth-child(1) { width: 10%; }
@@ -28,60 +10,7 @@ th:nth-child(5), td:nth-child(5) { width: 15%; }
 th:nth-child(6), td:nth-child(6) { width: 11%; }
 th:nth-child(7), td:nth-child(7) { width: 24%; }
 
-tbody tr:nth-child(even) {
-    background-color: #f9f9f9;
-}
-
-tbody tr:hover {
-    background-color: #e0e0e0;
-}
-
 .champion-icon {
     width: 64px;
     height: 64px;
-    display: block;
-    margin: 10px auto;
-}
-
-@media (max-width: 1224px) {
-    table {
-        width: 90%;
-    }
-}
-
-@media (max-width: 788px) {
-    body {
-        font-size: 14px;
-    }
-    table {
-        width: 90%;
-    }
-}
-
-@media (max-width: 601px) {
-    body {
-        font-size: 12px;
-    }
-    table {
-        width: 90%;
-        margin: 10px auto;
-    }
-    .champion-icon {
-        width: 30px;
-        height: 30px;
-    }
-}
-
-@media (max-width: 531px) {
-    body {
-        font-size: 10px;
-    }
-    table {
-        width: 90%;
-        margin: 10px auto;
-    }
-    .champion-icon {
-        width: 30px;
-        height: 30px;
-    }
 }

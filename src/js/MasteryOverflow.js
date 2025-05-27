@@ -12,6 +12,7 @@
  */
 
 import { getChampionIconUrl, getChampionsMap } from "./champData.js";
+import { fetchRiotAccount, fetchMasteryData } from "./riotAPI.js";
 
 /*
  * Handle Riot ID search form submission
@@ -62,19 +63,6 @@ async function handleRiotIdSubmit(event) {
 }
 
 /*
- * Name:        fetchRiotAccount()
- * Arguments:   Two strings representing the player's username and tag.
- * Returns:     A promise resolving to an object containing Riot ID information.
- * Description: Calls the Riot API to fetch account details using username and
- *              tag.
- * Effects:     None.
- */
-async function fetchRiotAccount(username, tag) {
-    const response = await fetch(`/api/account-by-riot-id?username=${encodeURIComponent(username)}&tag=${encodeURIComponent(tag)}`);
-    return response.json();
-}
-
-/*
  * Name:        updateRiotIdUI()
  * Arguments:   An object containing Riot ID information.
  * Returns:     None.
@@ -97,23 +85,16 @@ function updateRiotIdUI(data) {
  */
 async function fetchMasteryInfo(puuid) {
     try {
-        // Call Riot API to get mastery data
-        const response = await fetch(`/api/champion-mastery?puuid=${puuid}`)
-        const masteryData = await response.json();
-
+        const masteryData = await fetchMasteryData(puuid);
         if (masteryData.error) {
             alert("Error: " + masteryData.error);
             return;
         }
 
-        // Call getChampionsMap() to get map of champion names from their IDs
         const championsMap = await getChampionsMap();
-        
-        // Clear previous table data
         const masteryTableBody = document.getElementById("mastery-info");
         masteryTableBody.innerHTML = "";
 
-        // Populate table with mastery data
         masteryData.forEach(champion => {
             const row = formatMasteryRow(champion, championsMap);
             masteryTableBody.appendChild(row);

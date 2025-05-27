@@ -3,7 +3,7 @@
  *  Justin Paik
  *  Created: 16 March 2025
  *  Last Updated: 27 May 2025
- *  Riot API Champion Mastery Comparison
+ *  Riot API Mastery Comparer
  *
  *  This script manages profile inputs and champion selection, fetches mastery
  *  data for multiple profiles, and displays mastery info and recent win/loss
@@ -11,6 +11,7 @@
  */
 
 import { getChampionIconUrl, getChampionsMap } from "./champData.js";
+import { fetchRiotAccount, fetchAChampionMastery, fetchMatchHistory, fetchMatchDetails } from "./riotAPI.js";
 
 /*
  * Initialize event listeners on DOM load
@@ -93,24 +94,6 @@ function createProfileInput(profileNumber, existingData = {}) {
     `;
 
     return profileDiv;
-}
-
-/*
- * Name:        fetchRiotAccount()
- * Arguments:   Strings representing a player's username and tag.
- * Returns:     A promise resolving to an object containing Riot ID data.
- * Description: Calls the Riot API to fetch the PUUID using username and tag.
- * Effects:     None.
- */
-async function fetchRiotAccount(username, tag) {
-    // Call the Riot API to fetch this profile's PUUID
-    try {
-        const response = await fetch(`/api/account-by-riot-id?username=${encodeURIComponent(username)}&tag=${encodeURIComponent(tag)}`);
-        return await response.json();
-    } catch (err) {
-        console.error(`Error fetching Riot ID for ${username}#${tag}:`, err);
-        return { error: "Failed to fetch Riot account data" };
-    }
 }
 
 /*
@@ -216,26 +199,6 @@ async function fetchAllProfilesMastery() {
 }
 
 /*
- * Name:        fetchAChampionMastery()
- * Arguments:   A string representing the player's PUUID and an integer for the
- *              champion ID.
- * Returns:     Mastery data for the given champion.
- * Description: Calls the Riot API to retrieve the mastery data for the
- *              specified champion.
- * Effects:     None.
- */
-async function fetchAChampionMastery(puuid, champId) {
-    try {
-        // Call the API the mastery info for the inputted profile and champion
-        const response = await fetch(`/api/a-champion-mastery?puuid=${puuid}&championId=${champId}`);
-        return await response.json();
-    } catch (err) {
-        console.error("Error fetching champion mastery:", err);
-        return { error: "Failed to fetch mastery data" };
-    }
-}
-
-/*
  * Name:        updateMasteryTable()
  * Arguments:   An array of mastery data, an array of profile data, and a champion ID.
  * Returns:     None.
@@ -270,40 +233,6 @@ async function updateMasteryTable(masteryData, profiles, championId) {
                 <td>${winLoss}</td>
             </tr>`;
     });
-}
-
-/*
- * Name:        fetchMatchHistory()
- * Arguments:   A string representing the a player's PUUID.
- * Returns:     An array of match IDs.
- * Description: Retrieves the last 10 match IDs for the given PUUID.
- * Effects:     Calls the Riot API.
- */
-async function fetchMatchHistory(puuid) {
-    try {
-        const response = await fetch(`/api/match-history?puuid=${puuid}&count=20`);
-        return await response.json();
-    } catch (err) {
-        console.error(`Error fetching match history for PUUID ${puuid}:`, err);
-        return [];
-    }
-}
-
-/*
- * Name:        fetchMatchDetails()
- * Arguments:   A string representing the match ID.
- * Returns:     An object containing match details.
- * Description: Calls the Riot API to fetch data for a specific match.
- * Effects:     None.
- */
-async function fetchMatchDetails(matchId) {
-    try {
-        const response = await fetch(`/api/match-info?matchId=${matchId}`);
-        return await response.json();
-    } catch (err) {
-        console.error(`Error fetching match details for ${matchId}:`, err);
-        return null;
-    }
 }
 
 /*

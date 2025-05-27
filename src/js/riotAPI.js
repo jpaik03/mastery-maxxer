@@ -1,5 +1,5 @@
 /*
- *  riotAPI.js
+ *  riotApi.js
  *  Justin Paik
  *  Created: 27 May 2025
  *  Last Updated: 27 May 2025

@@ -11,8 +11,8 @@
  *  overflow and limiting factors.
  */
 
-import { getChampionIconUrl, getChampionsMap } from "./champData.js";
-import { fetchRiotAccount, fetchMasteryData } from "./riotAPI.js";
+import { getChampionIconUrl, getChampionsMap } from "./championData.js";
+import { fetchRiotAccount, fetchMasteryData } from "./riotApi.js";
 
 /*
  * Handle Riot ID search form submission

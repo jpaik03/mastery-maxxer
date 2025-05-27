@@ -10,8 +10,8 @@
  *  history in a table.
  */
 
-import { getChampionIconUrl, getChampionsMap } from "./champData.js";
-import { fetchRiotAccount, fetchAChampionMastery, fetchMatchHistory, fetchMatchDetails } from "./riotAPI.js";
+import { getChampionIconUrl, getChampionsMap } from "./championData.js";
+import { fetchRiotAccount, fetchAChampionMastery, fetchMatchHistory, fetchMatchDetails } from "./riotApi.js";
 
 /*
  * Initialize event listeners on DOM load

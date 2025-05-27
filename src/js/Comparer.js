@@ -1,4 +1,18 @@
 /*
+ *  Comparer.js
+ *  Justin Paik
+ *  Created: 16 March 2025
+ *  Last Updated: 27 May 2025
+ *  Riot API Champion Mastery Comparison
+ *
+ *  This script manages profile inputs and champion selection, fetches mastery
+ *  data for multiple profiles, and displays mastery info and recent win/loss
+ *  history in a table.
+ */
+
+import { getChampionIconUrl, getChampionsMap } from "./champData.js";
+
+/*
  * Initialize event listeners on DOM load
  */
 document.addEventListener("DOMContentLoaded", async () => {
@@ -170,54 +184,6 @@ async function getChampionsList() {
         console.error("Error fetching champions:", err);
         return [];
     }
-}
-
-/*
- * Name:        getChampionsMap()
- * Arguments:   None.
- * Returns:     A mapping of champion IDs to their correct champion names.
- * Description: Retrieves cached champion data, refreshing if outdated.
- * Effects:     Calls Data Dragon API if necessary.
- */
-async function getChampionsMap() {
-    // Call helper function to call from API
-    const champions = await getLatestDDragon();
-
-    // Create and return the map
-    const championsMap = {};
-    for (const champ in champions) {
-        championsMap[champions[champ].key] = champions[champ].name;
-    }
-    return championsMap;
-}
-
-/*
- * Name:        getLatestDDragon()
- * Arguments:   None.
- * Returns:     A promise resolving to an object containing champion names and
- *              IDs.
- * Description: Fetches champion data from Data Dragon and caches results.
- * Effects:     Calls Riot API if cached data is missing or outdated.
- */
-let championJson = {}, cachedVersion = "";
-async function getLatestDDragon() {
-    try {
-        // Get latest version
-        const latestVersion = (await (await fetch("https://ddragon.leagueoflegends.com/api/versions.json")).json())[0];
-
-        // If cache exists and version is the same, return cache
-        if (championJson && (cachedVersion === latestVersion)) {
-            return championJson;
-        }
-
-        // Update cache and return new version
-        cachedVersion = latestVersion;
-        championJson = (await (await fetch(`https://ddragon.leagueoflegends.com/cdn/${latestVersion}/data/en_US/champion.json`)).json()).data;
-        return championJson;
-    } catch (err) {
-        console.error("Error fetching from DDragon API:", err);
-        return {};
-    }    
 }
 
 /*
@@ -400,34 +366,4 @@ async function getSelectedChampionId() {
     }
 
     return championId;
-}
-
-/*
- * Name:        getChampionIconUrl()
- * Arguments:   A string representing the champion's name.
- * Returns:     A string containing the full URL to the champion's icon.
- * Description: Constructs the URL to fetch the champion's image from the
- *              DDragon CDN.
- * Effects:     None.
- */
-function getChampionIconUrl(championName) {
-    const version = "15.5.1";
-
-    // Special cases
-    const specialCases = {
-        "Bel'Veth": "Belveth",
-        "Cho'Gath": "Chogath",
-        "Kai'Sa": "Kaisa",
-        "Kha'Zix": "Khazix",
-        "LeBlanc": "Leblanc",
-        "Nunu & Willump": "Nunu",
-        "Renata Glasc": "Renata",
-        "Vel'Koz": "Velkoz",
-        "Wukong": "MonkeyKing"
-    };
-
-    // Check if champion is in special cases, else format normally
-    const formattedName = specialCases[championName] || championName.replace(/[^a-zA-Z0-9]/g, "");
-
-    return `https://ddragon.leagueoflegends.com/cdn/${version}/img/champion/${formattedName}.png`;
 }

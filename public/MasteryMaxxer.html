@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>Mastery Maxxer</title>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="stylesheet" href="/css/base.css" />
+        <link rel="stylesheet" href="/css/MMstyles.css" />
+        <script type="module" src="/js/MasteryMaxxer.js"></script>
+    </head>
+    <body>
+        <h1>Search Riot ID</h1>
+        <form id="riot-id">
+            <label for="gameName-input">Riot ID: </label>
+            <input
+                type="text"
+                id="gameName-input"
+                name="gameName"
+                placeholder="Game Name"
+            />
+
+            <label for="tagLine-input">#</label>
+            <input type="text" id="tagLine-input" name="tagLine" placeholder="Tagline" />
+
+            <input type="submit" value="Submit" />
+        </form>
+
+        <h1>Profile</h1>
+        <p>
+            Riot ID: <span id="display-gameName"></span
+            ><span id="display-tagLine"></span>
+        </p>
+
+        <h1>Champion Mastery</h1>
+        <table id="mastery-table">
+            <thead>
+                <tr>
+                    <th>Champion</th>
+                    <th>Level</th>
+                    <th>Points</th>
+                    <th>Marks</th>
+                    <th>Min Grade for Next Mark</th>
+                    <th>Limiting Factor</th>
+                </tr>
+            </thead>
+            <tbody id="mastery-info">
+                <tr>
+                    <td colspan="8">Enter your Riot ID.</td>
+                </tr>
+            </tbody>
+        </table>
+    </body>
+</html>

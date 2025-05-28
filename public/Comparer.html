@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>LoL Comparer</title>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="stylesheet" href="/css/base.css" />
+        <link rel="stylesheet" href="/css/Comparerstyles.css" />
+        <script type="module" src="/js/Comparer.js"></script>
+    </head>
+    <body>
+        <h1>Search Profiles</h1>
+        <label for="profile-count">Number of Profiles:</label>
+        <select id="profile-count">
+            <option value="1">1</option>
+            <option value="2" selected>2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
+            <option value="9">9</option>
+            <option value="10">10</option>
+        </select>
+
+        <div id="profile-container"></div>
+
+        <label for="champ-input">Champion:</label>
+        <select id="champ-input" name="champ" required></select>
+        <button type="button" id="fetch-mastery">Compare!</button>
+
+        <h1>Champion Mastery Comparison</h1>
+        <img
+            id="champ-icon"
+            src=""
+            alt="Champion Icon"
+            class="champ-icon"
+            style="display: none"
+        />
+        <table id="mastery-comparison">
+            <thead>
+                <tr>
+                    <th>Profile</th>
+                    <th>Level</th>
+                    <th>Points</th>
+                    <th>Recent Matches</th>
+                </tr>
+            </thead>
+            <tbody id="mastery-info">
+                <tr>
+                    <td colspan="5">Select a champion and compare profiles.</td>
+                </tr>
+            </tbody>
+        </table>
+    </body>
+</html>

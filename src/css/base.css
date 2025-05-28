@@ -1,0 +1,86 @@
+@font-face {
+    font-family: 'Beaufort';
+    src: url('/fonts/BeaufortLoL/BeaufortLOL-Regular.otf');
+}
+
+body {
+    font-size: 20px;
+    font-family: 'Beaufort', Helvetica, Arial, sans-serif;
+    margin: 20px;
+}
+
+table {
+    margin: 20px auto;
+    border-collapse: collapse;
+    border: 1px solid #ddd;
+}
+
+thead {
+    background-color: #f4f4f4;
+}
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: center;
+}
+
+tbody tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+tbody tr:hover {
+    background-color: #e0e0e0;
+}
+
+button, select, label, input, input::placeholder {
+    font-family: 'Beaufort', Helvetica, Arial, sans-serif;
+}
+
+.champ-icon {
+    display: block;
+    margin: auto;
+}
+
+@media (max-width: 1224px) {
+    table {
+        width: 90%;
+    }
+}
+
+@media (max-width: 788px) {
+    body {
+        font-size: 14px;
+    }
+    table {
+        width: 90%;
+    }
+}
+
+@media (max-width: 601px) {
+    body {
+        font-size: 12px;
+    }
+    table {
+        width: 90%;
+        margin: 10px auto;
+    }
+    .champ-icon {
+        width: 30px;
+        height: 30px;
+    }
+}
+
+@media (max-width: 531px) {
+    body {
+        font-size: 10px;
+    }
+    table {
+        width: 90%;
+        margin: 10px auto;
+    }
+    .champ-icon {
+        width: 30px;
+        height: 30px;
+    }
+}

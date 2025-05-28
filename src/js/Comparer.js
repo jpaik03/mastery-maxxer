@@ -10,8 +10,8 @@
  *  history in a table.
  */
 
-import { getChampionIconUrl, getChampionsMap } from "./championData.js";
-import { fetchRiotAccount, fetchAChampionMastery, fetchMatchHistory, fetchMatchDetails } from "./riotApi.js";
+import { getChampIconUrl, getChampMap } from "./champData.js";
+import { fetchRiotAccount, fetchAChampMastery, fetchMatchHistory, fetchMatchDetails } from "./riotApi.js";
 
 /*
  * Initialize event listeners on DOM load
@@ -20,7 +20,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("profile-count").addEventListener("change", updateProfileNum);
     document.getElementById("fetch-mastery").addEventListener("click", fetchAllProfilesMastery);
     updateProfileNum();
-    await populateChampionDropdown();
+    await populateChampDropdown();
 });
 
 /*
@@ -49,7 +49,7 @@ function updateProfileNum() {
 /*
  * Name:        getExistingInputs()
  * Arguments:   None.
- * Returns:     An array of objects containing usernames and tags from existing
+ * Returns:     An array of objects containing game names and taglines from existing
  *              profile fields.
  * Description: Retrieves current values before modifying profile input fields.
  * Effects:     None.
@@ -61,12 +61,12 @@ function getExistingInputs() {
     // Collect and store current entries
     for (let i = 0; i < profileEntries.length; i++) {
         const entry = profileEntries[i];
-        const usernameInput = entry.querySelector(".username-input");
-        const tagInput = entry.querySelector(".tag-input");
+        const gameNameInput = entry.querySelector(".gameName-input");
+        const tagLineInput = entry.querySelector(".tagLine-input");
 
         existingInputs.push({
-            username: usernameInput ? usernameInput.value : "",
-            tag: tagInput ? tagInput.value : ""
+            gameName: gameNameInput ? gameNameInput.value : "",
+            tagLine: tagLineInput ? tagLineInput.value : ""
         });
     }
     return existingInputs;
@@ -88,9 +88,9 @@ function createProfileInput(profileNumber, existingData = {}) {
     // Write the data into the element
     profileDiv.innerHTML = `
         <label>Profile ${profileNumber}: </label>
-        <input type="text" class="username-input" placeholder="Username" value="${existingData.username || ""}" required />
+        <input type="text" class="gameName-input" placeholder="Game Name" value="${existingData.gameName || ""}" required />
         <label>#</label>
-        <input type="text" class="tag-input" placeholder="Tag" value="${existingData.tag || ""}" required />
+        <input type="text" class="tagLine-input" placeholder="Tagline" value="${existingData.tagLine || ""}" required />
     `;
 
     return profileDiv;
@@ -100,7 +100,7 @@ function createProfileInput(profileNumber, existingData = {}) {
  * Name:        getProfilesWithPUUIDs()
  * Arguments:   None.
  * Returns:     An array of objects containing gameName, tagLine, and PUUID.
- * Description: Retrieves PUUIDs for profiles that have both username and tag
+ * Description: Retrieves PUUIDs for profiles that have both game name and tagline
  *              filled.
  * Effects:     Calls Riot API.
  */
@@ -108,16 +108,16 @@ async function getProfilesWithPUUIDs() {
     const profiles = [];
 
     for (const entry of document.querySelectorAll(".profile-entry")) {
-        const username = entry.querySelector(".username-input").value.trim();
-        const tag = entry.querySelector(".tag-input").value.trim();
+        const gameName = entry.querySelector(".gameName-input").value.trim();
+        const tagLine = entry.querySelector(".tagLine-input").value.trim();
 
         // Skip entries that are not fully filled in
-        if (!username || !tag) {
+        if (!gameName || !tagLine) {
             continue;
         }
 
         // Fetch account data
-        const profileData = await fetchRiotAccount(username, tag);
+        const profileData = await fetchRiotAccount(gameName, tagLine);
         if (!profileData.error) {
             profiles.push({
                 gameName: profileData.gameName,
@@ -130,39 +130,39 @@ async function getProfilesWithPUUIDs() {
 }
 
 /*
- * Name:        populateChampionDropdown()
+ * Name:        populateChampDropdown()
  * Arguments:   None.
  * Returns:     None.
  * Description: Retrieves and fills the champion dropdown with an alphabetised
  *              list.
- * Effects:     Modifies the "champion-input" select element.
+ * Effects:     Modifies the "champ-input" select element.
  */
-async function populateChampionDropdown() {
+async function populateChampDropdown() {
     try {
-        const championDropdown = document.getElementById("champion-input");
-        const champions = await getChampionsList();
+        const champDropdown = document.getElementById("champ-input");
+        const champs = await getChampList();
 
         // Populate dropdown with sorted champion names
-        championDropdown.innerHTML = `<option value="">Select a Champion</option>` + champions.map(champion => `<option value="${champion}">${champion}</option>`).join("");
+        champDropdown.innerHTML = `<option value="">Select a Champion</option>` + champs.map(champ => `<option value="${champ}">${champ}</option>`).join("");
     } catch (err) {
         console.error("Error fetching champions:", err);
     }
 }
 
 /*
- * Name:        getChampionsList()
+ * Name:        getChampList()
  * Arguments:   None.
  * Returns:     An array of champion names sorted alphabetically.
  * Description: Retrieves the latest champion list from Data Dragon.
  * Effects:     Fetches champion data from Riot API.
  */
-async function getChampionsList() {
+async function getChampList() {
     try {
         // Fetch champion data
-        const championsMap = await getChampionsMap();
+        const champMap = await getChampMap();
 
         // Return alphabetised champion names
-        return Object.values(championsMap).sort();
+        return Object.values(champMap).sort();
     } catch (err) {
         console.error("Error fetching champions:", err);
         return [];
@@ -178,24 +178,24 @@ async function getChampionsList() {
  * Effects:     Updates the mastery table dynamically.
  */
 async function fetchAllProfilesMastery() {
-    const championId = await getSelectedChampionId();
-    if (!championId) return;
+    const champId = await getSelectedChampId();
+    if (!champId) return;
 
     const profiles = await getProfilesWithPUUIDs();
     if (!profiles.length) return;
 
     // Update champion icon
-    const championName = document.getElementById("champion-input").value;
-    const championIconUrl = getChampionIconUrl(championName);
-    const championIcon = document.getElementById("champion-icon");
+    const champName = document.getElementById("champ-input").value;
+    const champIconUrl = getChampIconUrl(champName);
+    const champIcon = document.getElementById("champ-icon");
 
-    championIcon.src = championIconUrl;
-    championIcon.alt = championName;
-    championIcon.style.display = "block";
+    champIcon.src = champIconUrl;
+    champIcon.alt = champName;
+    champIcon.style.display = "block";
 
     // Fetch mastery data and update table
-    const masteryData = await Promise.all(profiles.map(profile => fetchAChampionMastery(profile.puuid, championId)));
-    updateMasteryTable(masteryData, profiles, championId);
+    const masteryData = await Promise.all(profiles.map(profile => fetchAChampMastery(profile.puuid, champId)));
+    updateMasteryTable(masteryData, profiles, champId);
 }
 
 /*
@@ -205,12 +205,12 @@ async function fetchAllProfilesMastery() {
  * Description: Updates the mastery table with sorted mastery points and win/loss history.
  * Effects:     Dynamically modifies the HTML table content.
  */
-async function updateMasteryTable(masteryData, profiles, championId) {
+async function updateMasteryTable(masteryData, profiles, champId) {
     const masteryTableBody = document.getElementById("mastery-info");
     masteryTableBody.innerHTML = "";
 
     // Fetch win/loss history for each profile in parallel
-    const winLossHistories = await Promise.all(profiles.map(profile => getWinLossHistory(profile.puuid, championId)));
+    const winLossHistories = await Promise.all(profiles.map(profile => getWinLossHistory(profile.puuid, champId)));
 
     // Process, combine, and sort mastery data
     const combinedData = masteryData.map((mastery, index) => ({
@@ -243,7 +243,7 @@ async function updateMasteryTable(masteryData, profiles, championId) {
  * Description: Extracts the last 10 match results for the selected champion.
  * Effects:     Calls fetchMatchHistory() and fetchMatchDetails().
  */
-async function getWinLossHistory(puuid, championId) {
+async function getWinLossHistory(puuid, champId) {
     const matchIds = await fetchMatchHistory(puuid);
     if (!matchIds || matchIds.length === 0) {
         return ["No recent matches found."];
@@ -260,7 +260,7 @@ async function getWinLossHistory(puuid, championId) {
         // Find the player in the match
         const player = matchData.info.participants.find(p => p.puuid === puuid);
 
-        if (player?.championId === parseInt(championId, 10)) {
+        if (player?.championId === parseInt(champId, 10)) {
             results.push(player.win ? "W" : "L");
         }
 
@@ -273,26 +273,26 @@ async function getWinLossHistory(puuid, championId) {
 }
 
 /*
- * Name:        getSelectedChampionId()
+ * Name:        getSelectedChampId()
  * Arguments:   None.
  * Returns:     The champion ID if found, otherwise null.
  * Description: Retrieves the selected champion's ID based on its name.
  * Effects:     None.
  */
-async function getSelectedChampionId() {
-    const championName = document.getElementById("champion-input").value;
-    if (!championName) {
+async function getSelectedChampId() {
+    const champName = document.getElementById("champ-input").value;
+    if (!champName) {
         alert("Please select a champion.");
         return null;
     }
 
     // Find the correct champion based on its name
-    const championsMap = await getChampionsMap();
-    const championId = Object.keys(championsMap).find(key => championsMap[key] === championName);
+    const champMap = await getChampMap();
+    const champId = Object.keys(champMap).find(key => champMap[key] === champName);
 
-    if (!championId) {
+    if (!champId) {
         alert("Error: Champion ID not found.");
     }
 
-    return championId;
+    return champId;
 }

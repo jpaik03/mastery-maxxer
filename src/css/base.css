@@ -37,7 +37,7 @@ button, select, label, input, input::placeholder {
     font-family: 'Beaufort', Helvetica, Arial, sans-serif;
 }
 
-.champion-icon {
+.champ-icon {
     display: block;
     margin: auto;
 }
@@ -65,7 +65,7 @@ button, select, label, input, input::placeholder {
         width: 90%;
         margin: 10px auto;
     }
-    .champion-icon {
+    .champ-icon {
         width: 30px;
         height: 30px;
     }
@@ -79,7 +79,7 @@ button, select, label, input, input::placeholder {
         width: 90%;
         margin: 10px auto;
     }
-    .champion-icon {
+    .champ-icon {
         width: 30px;
         height: 30px;
     }

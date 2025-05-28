@@ -14,14 +14,14 @@
 
 /*
  * Name:        fetchRiotAccount()
- * Arguments:   Two strings representing the player's username and tag.
+ * Arguments:   Two strings representing the player's gamename and tagline.
  * Returns:     A promise resolving to an object containing Riot ID information.
- * Description: Calls the Riot API to fetch account details using username and
- *              tag.
+ * Description: Calls the Riot API to fetch account details using gamename and
+ *              tagline.
  * Effects:     None.
  */
-export async function fetchRiotAccount(username, tag) {
-    const response = await fetch(`/api/account-by-riot-id?username=${encodeURIComponent(username)}&tag=${encodeURIComponent(tag)}`);
+export async function fetchRiotAccount(gameName, tagLine) {
+    const response = await fetch(`/api/account-by-riot-id?gameName=${encodeURIComponent(gameName)}&tagLine=${encodeURIComponent(tagLine)}`);
     return response.json();
 }
 
@@ -39,7 +39,7 @@ export async function fetchMasteryData(puuid) {
 }
 
 /*
- * Name:        fetchAChampionMastery()
+ * Name:        fetchAChampMastery()
  * Arguments:   A string representing the player's PUUID and an integer for the
  *              champion ID.
  * Returns:     Mastery data for the given champion.
@@ -47,7 +47,7 @@ export async function fetchMasteryData(puuid) {
  *              specified champion.
  * Effects:     None.
  */
-export async function fetchAChampionMastery(puuid, champId) {
+export async function fetchAChampMastery(puuid, champId) {
     const response = await fetch(`/api/a-champion-mastery?puuid=${puuid}&championId=${champId}`);
     return await response.json();
 }

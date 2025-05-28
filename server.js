@@ -14,14 +14,14 @@ app.use("/css", express.static(path.join(__dirname, "src/css")));
 // Get PUUID
 app.get("/api/account-by-riot-id", async (req, res) => {
     try {
-        const { username, tag } = req.query;
+        const { gameName, tagLine } = req.query;
 
-        if (!username || !tag ) {
+        if (!gameName || !tagLine ) {
             return res.status(400).json({ error: "Required fields not filled in"});
         }
 
-        const encodedTag = encodeURIComponent(tag);
-        const url = `https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${username}/${encodedTag}?api_key=${API_KEY}`;
+        const encodedtagLine = encodeURIComponent(tagLine);
+        const url = `https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${gameName}/${encodedtagLine}?api_key=${API_KEY}`;
         
         const response = await axios.get(url, {
             headers: {
@@ -124,8 +124,8 @@ app.get("/api/match-info", async (req, res) => {
 });
 
 // Route for homepage
-app.get("/MasteryOverflow", (req, res) => {
-    res.sendFile(path.join(__dirname, "public", "MasteryOverflow.html"));
+app.get("/MasteryMaxxer", (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "MasteryMaxxer.html"));
 });
 
 app.get("/Comparer", (req, res) => {
@@ -134,5 +134,5 @@ app.get("/Comparer", (req, res) => {
 
 // Start server
 app.listen(PORT, () => {
-    console.log(`Server running at http://localhost:${PORT}/MasteryOverflow`);
+    console.log(`Server running at http://localhost:${PORT}/MasteryMaxxer`);
 });

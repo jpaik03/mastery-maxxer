@@ -1,9 +1,9 @@
 /*
- *  MasteryOverflow.js
+ *  MasteryMaxxer.js
  *  Justin Paik
  *  Created: 16 March 2025
- *  Last Updated: 27 May 2025 
- *  Riot API Mastery Overflow
+ *  Last Updated: 28 May 2025 
+ *  Riot API Mastery Maxxer
  *
  *  This script handles fetching champion mastery data for a given Riot ID. It
  *  processes user input for Riot ID, retrieves account and mastery info,
@@ -11,14 +11,14 @@
  *  overflow and limiting factors.
  */
 
-import { getChampionIconUrl, getChampionsMap } from "./championData.js";
+import { getChampIconUrl, getChampMap } from "./champData.js";
 import { fetchRiotAccount, fetchMasteryData } from "./riotApi.js";
 
 /*
  * Handle Riot ID search form submission
  */
 document.addEventListener("DOMContentLoaded", () => {
-    document.getElementById("collect-riot-id").addEventListener("submit", handleRiotIdSubmit);
+    document.getElementById("riot-id").addEventListener("submit", handleRiotIdSubmit);
 });
 
 /*
@@ -27,34 +27,35 @@ document.addEventListener("DOMContentLoaded", () => {
  * Returns:     None.
  * Description: Handles form submission, retrieves PUUID, and triggers mastery
  *              data fetching.
+ *              Handles user input for Riot ID, fetches the corresponding PUUID
+ *              using the Riot API, updates the UI, and fetches mastery data.
  * Effects:     Calls fetchRiotAccount() to get mastery data. Updates UI with
  *              retrieved Riot ID and calls fetchMasteryInfo().
  */
 let puuid = "";
 async function handleRiotIdSubmit(event) {
     event.preventDefault();
-    // Get form elements
-    const username = document.getElementById("username-input")?.value.trim() || "";
-    const tag = document.getElementById("tag-input")?.value.trim() || "";
+    // Get input values and trim whitespace
+    const gameName = document.getElementById("gameName-input")?.value.trim() || "";
+    const tagLine = document.getElementById("tagLine-input")?.value.trim() || "";
 
-    // Ensure user inputs both username and tag
-    if (!username || !tag) {
+    // Show alert if either field is empty
+    if (!gameName || !tagLine) {
         alert("Please enter your Riot ID.");
         return;
     }
 
     try {
-        // Call Riot API using fetchRiotAccount() to get PUUID
-        const data = await fetchRiotAccount(username, tag);
-
+        // Get corresponding PUUID using the Riot API
+        const data = await fetchRiotAccount(gameName, tagLine);
         if (data.error) {
             alert("Error: " + data.error);
             return;
         }
-
         puuid = data.puuid;
-        // Update Riot ID Ui using updateRiotIdUI()
+        // Update the UI with the user's Riot ID
         updateRiotIdUI(data);
+        // Fetch and display the mastery information
         fetchMasteryInfo(puuid);
     } catch (err) {
         console.error("Error fetching Riot account:", err);
@@ -66,38 +67,41 @@ async function handleRiotIdSubmit(event) {
  * Name:        updateRiotIdUI()
  * Arguments:   An object containing Riot ID information.
  * Returns:     None.
- * Description: Updates the UI to display Riot ID information.
+ * Description: Updates the UI to display the Riot ID.
  * Effects:     Modifies HTML elements to show retrieved data.
  */
 function updateRiotIdUI(data) {
-    document.getElementById("display-username").textContent = data.gameName;
-    document.getElementById("display-tag").textContent = `#${data.tagLine}`;
+    document.getElementById("display-gameName").textContent = data.gameName;
+    document.getElementById("display-tagLine").textContent = `#${data.tagLine}`;
 }
 
 /*
  * Name:        fetchMasteryInfo()
  * Arguments:   A string representing the player's unique identifier (PUUID).
  * Returns:     None.
- * Description: Calls the Riot API to retrieve the mastery data for the given
- *              PUUID.
- * Effects:     Calls getChampionsMap() to retrieve corresponding champion names
- *              from their IDs. Populates the "mastery-info" HTML table.
+ * Description: Fetches mastery data for the given PUUID, maps champion IDs to
+ *              names, and updates the table with the mastery details.
+ * Effects:     Updates the inner HTML of the "mastery-info" table.
  */
 async function fetchMasteryInfo(puuid) {
     try {
+        // Fetch mastery data from the Riot API
         const masteryData = await fetchMasteryData(puuid);
         if (masteryData.error) {
             alert("Error: " + masteryData.error);
             return;
         }
 
-        const championsMap = await getChampionsMap();
+        // Retrieve champion name map
+        const champMap = await getChampMap();
+        // Get the table body element and clear previous entries
         const masteryTableBody = document.getElementById("mastery-info");
         masteryTableBody.innerHTML = "";
 
-        masteryData.forEach(champion => {
-            const row = formatMasteryRow(champion, championsMap);
-            masteryTableBody.appendChild(row);
+        // Format and insert each mastery row into the table
+        masteryData.forEach(champ => {
+            const masteryRow = formatMasteryRow(champ, champMap);
+            masteryTableBody.appendChild(masteryRow);
         });
     } catch (err) {
         console.error("Error fetching mastery data:", err);
@@ -113,68 +117,72 @@ async function fetchMasteryInfo(puuid) {
  *              table row.
  * Effects:     None.
  */
-function formatMasteryRow(champion, championsMap) {
-    const championId = champion.championId;
-    const championName = championsMap[championId] || "Champion not found";
-    const championIconUrl = getChampionIconUrl(championName);
-    const championLevel = champion.championLevel;
-    const championPoints = champion.championPoints;
-    const pointsNeeded = championPoints + champion.championPointsUntilNextLevel;
-    const marksEarned = champion.tokensEarned;
-    const marksRequiredForNextLevel = champion.markRequiredForNextLevel;
-    const nextSeasonMilestone = champion.nextSeasonMilestone;
-    const numGamesReq = nextSeasonMilestone?.totalGamesRequires || "";
-    const gradeReq = getGradeReq(nextSeasonMilestone);
-    const rewardText = getRewardText(nextSeasonMilestone?.rewardMarks);
-    const overflowData = getMasteryOverflow([champion])[0];
-    const limitingFactor = overflowData.limitingFactor;
+function formatMasteryRow(champ, champMap) {
+    const champId = champ.championId;
+    const champName = champMap[champId] || "Champion not found";
+    const champIconUrl = getChampIconUrl(champName);
+    const currLevel = champ.championLevel;
+    const currPoints = champ.championPoints;
+    const pointsForNextLevel = currPoints + champ.championPointsUntilNextLevel;
+    const currMarks = champ.tokensEarned;
+    const marksForNextLevel = champ.markRequiredForNextLevel;
+    const nextMilestone = champ.nextSeasonMilestone;
+    const numGamesReq = nextMilestone?.totalGamesRequires || "";
+    const gradeReq = getGradeReq(nextMilestone);
+    const rewardText = getRewardText(nextMilestone?.rewardMarks);
+    const progressDetails = getProgressDetails([champ])[0];
+    const limitingFactor = progressDetails.limitingFactor;
 
     const gradeColor = getGradeColor(gradeReq);
     const limitingColor = getLimitingColor(limitingFactor);
 
-    const row = document.createElement("tr");
-    row.innerHTML = `
-        <td><img src="${championIconUrl}" alt="${championName}" class="champion-icon"></td>
-        <td>${championLevel}</td>
-        <td>${championPoints}<span style="color:#999999">/${pointsNeeded}</span></td>
-        <td>${marksEarned}<span style="color:#999999">/${marksRequiredForNextLevel}</span></td>
+    const masteryRow = document.createElement("tr");
+    masteryRow.innerHTML = `
+        <td><img src="${champIconUrl}" alt="${champName}" class="champ-icon"></td>
+        <td>${currLevel}</td>
+        <td>${currPoints}<span style="color:#999999">/${pointsForNextLevel}</span></td>
+        <td>${currMarks}<span style="color:#999999">/${marksForNextLevel}</span></td>
         <td style="color:${gradeColor}">${numGamesReq} ${gradeReq} earns ${rewardText}</td>
         <td style="color:${limitingColor}">${limitingFactor}</td>
     `;
     
-    return row;
+    return masteryRow;
 }
 
 /*
  * Name:        getRewardText()
  * Arguments:   An integer representing marks needed for the next level.
  * Returns:     A string describing the marks needed.
- * Description: Formats marks into a string.
+ * Description: Formats the number of marks into a string.
  * Effects:     None.
  */
 function getRewardText(nextReward) {
-    if (!nextReward) return "";
+    if (!nextReward) {
+        return "";
+    }
     return nextReward === 1 ? "1 mark" : `${nextReward} marks`;
 }
 
 /*
  * Name:        getGradeReq()
- * Arguments:   An object containing milestone info.
+ * Arguments:   Milestone data containing grade requirements for marks.
  * Returns:     A string representing the grade requirement ("S-" or "A-") for
  *              the next level.
  * Description: Extracts the grade requirement from the milestone data.
  * Effects:     None.
  */
-function getGradeReq(nextSeasonMilestone) {
-    if (!nextSeasonMilestone) return "";
-    return nextSeasonMilestone.requireGradeCounts?.["S-"] ? "S-" : "A-";
+function getGradeReq(nextMilestone) {
+    if (!nextMilestone) {
+        return "";
+    }
+    return nextMilestone.requireGradeCounts?.["S-"] ? "S-" : "A-";
 }
 
 /*
  * Name:        getGradeColor()
  * Arguments:   A string representing the grade requirement for the next level.
  * Returns:     A string representing a color for the grade text.
- * Description: Returns red color for "S-" grade, black for others.
+ * Description: Returns red color for "S-" grade, else black.
  * Effects:     None.
  */
 function getGradeColor(gradeReq) {
@@ -189,41 +197,46 @@ function getGradeColor(gradeReq) {
  * Effects:     None.
  */
 function getLimitingColor(limitingFactor) {
-    if (!limitingFactor) return "#000000";
+    if (!limitingFactor) {
+        return "#000000";
+    }
     return limitingFactor.includes("mark") && !limitingFactor.includes("point") ? "#FF0000" : "#000000";
 }
 
 /*
- * Name:        getMasteryOverflow()
- * Arguments:   An array of objects containing champion ID, points, level,
- *              current marks, and mastery overflow data.
+ * Name:        getProgressDetails()
+ * Arguments:   A list of champion mastery objects with fields: championPoints,
+ *              championLevel, and tokensEarned.
  * Returns:     An array of champions with the number of games needed to
- *              fix overflow.
- * Description: Determines how many marks are needed to level up for champions
- *              that have enough mastery points but not enough marks.
+ *              reach the potential mastery level.
+ * Description: Compares current points and marks to determine the limiting
+ *              factor to progress to the next level for each champion.
  * Effects:     None.
  */
-function getMasteryOverflow(masteryData) {
-    return masteryData.map(champion => {
-        const { championPoints, championLevel, tokensEarned, championPointsUntilNextLevel } = champion;
+function getProgressDetails(masteryData) {
+    return masteryData.map(champ => {
+        const { championPoints, championLevel, tokensEarned } = champ;
 
         // Determine max reachable level based on current mastery points
         const maxLevelByPoints = getMaxLevelByPoints(championPoints, championLevel);
         // Calculate marks needed to reach new level
-        const marksNeeded = Math.max(0, calculateMarksNeeded(championLevel, maxLevelByPoints) - tokensEarned);
+        let marksNeeded = Math.max(0, calculateMarksNeeded(championLevel, maxLevelByPoints) - tokensEarned);
 
         // Determine max reachable level based on current marks
         const maxLevelByMarks = getMaxLevelByMarks(tokensEarned, championLevel);
         // Calculate points needed to reach new level
-        const pointsNeeded = Math.max(0, calculatePointsNeeded(championLevel, maxLevelByMarks) - championPoints);
+        let pointsNeeded = Math.max(0, getLevelInfo(maxLevelByMarks).points - championPoints);
 
-        let limitingFactor = 'Maxed';
-        if (championPointsUntilNextLevel > 0 && marksNeeded > 0) {
-            limitingFactor = `${marksNeeded} mark${marksNeeded !== 1 ? 's' : ''} AND ${pointsNeeded} points`;
-        } else if (marksNeeded > 0) {
-            limitingFactor = `${marksNeeded} mark${marksNeeded !== 1 ? 's' : ''}`;
-        } else if (championPointsUntilNextLevel > 0) {
+        let limitingFactor = '';
+
+        if (maxLevelByMarks > maxLevelByPoints) {
             limitingFactor = `${pointsNeeded} points`;
+        } else if (maxLevelByPoints > maxLevelByMarks) {
+            limitingFactor = `${marksNeeded} mark${marksNeeded !== 1 ? 's' : ''}`;
+        } else {
+            marksNeeded = getLevelInfo(championLevel + 1).marks - tokensEarned;
+            pointsNeeded = getLevelInfo(championLevel + 1).points - championPoints;
+            limitingFactor = `${marksNeeded} mark${marksNeeded !== 1 ? 's' : ''} AND ${pointsNeeded} points`;
         }
 
         return {
@@ -240,9 +253,9 @@ function getMasteryOverflow(masteryData) {
  *              reach based on points.
  * Effects:     None.
  */
-function getMaxLevelByPoints(championPoints, championLevel) {
-    let maxLevel = championLevel;
-    while (championPoints >= getLevelInfo(maxLevel + 1).points) {
+function getMaxLevelByPoints(currPoints, currLevel) {
+    let maxLevel = currLevel;
+    while (currPoints >= getLevelInfo(maxLevel + 1).points) {
         maxLevel++;
     }
     return maxLevel;
@@ -250,20 +263,20 @@ function getMaxLevelByPoints(championPoints, championLevel) {
 
 /*
  * Name:        calculateMarksNeeded()
- * Arguments:   An integer representing a champion's current mastery level and
- *              potential level.
+ * Arguments:   An integer representing the current mastery level and highest
+ *              potental level by points of a champion.
  * Returns:     The total number of marks needed to advance from the current to
  *              the potential level.
- * Description: Sums up all required marks from the current level to the highest
- *              reachable level.
+ * Description: Calculates the cumulative marks needed to go from the current
+ *              level to the potential level by adding marginal marks.
  * Effects:     None.
  */
 function calculateMarksNeeded(currentLevel, maxLevel) {
-    let totalMarks = 0;
-    for (let lvl = currentLevel + 1; lvl <= maxLevel + 1; lvl++) {
-        totalMarks += getLevelInfo(lvl).marks;
+    let marksNeeded = 0;
+    for (let lvl = currentLevel + 1; lvl <= maxLevel; lvl++) {
+        marksNeeded += getLevelInfo(lvl).marks;
     }
-    return totalMarks;
+    return marksNeeded;
 }
 
 /*
@@ -274,33 +287,13 @@ function calculateMarksNeeded(currentLevel, maxLevel) {
  *              reach based on marks.
  * Effects:     None.
  */
-function getMaxLevelByMarks(tokensEarned, championLevel) {
-    let maxLevel = championLevel;
-
+function getMaxLevelByMarks(tokensEarned, currLevel) {
+    let maxLevel = currLevel;
     while (tokensEarned >= getLevelInfo(maxLevel + 1).marks) {
         tokensEarned -= getLevelInfo(maxLevel + 1).marks;
         maxLevel++;
     }
-
     return maxLevel;
-}
-
-/*
- * Name:        calculatePointsNeeded()
- * Arguments:   An integer representing a champion's current mastery level and
- *              potential level.
- * Returns:     The total number of points needed to advance from the current to
- *              the potential level.
- * Description: Finds the required points from the current level to the highest
- *              reachable level.
- * Effects:     None.
- */
-function calculatePointsNeeded(currentLevel, maxLevel) {
-    let totalPoints = 0;
-    for (let lvl = currentLevel + 1; lvl <= maxLevel + 1; lvl++) {
-        totalPoints = getLevelInfo(lvl).points;
-    }
-    return totalPoints;
 }
 
 /*

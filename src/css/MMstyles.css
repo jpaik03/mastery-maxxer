@@ -9,7 +9,7 @@ th:nth-child(4), td:nth-child(4) { width: 10%; }
 th:nth-child(5), td:nth-child(5) { width: 30%; }
 th:nth-child(6), td:nth-child(6) { width: 20%; }
 
-.champion-icon {
+.champ-icon {
     width: 40px;
     height: 40px;
 }

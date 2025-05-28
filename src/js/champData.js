@@ -2,7 +2,7 @@
  *  champData.js
  *  Justin Paik
  *  Created: 27 May 2025
- *  Last Updated: 27 May 2025
+ *  Last Updated: 28 May 2025
  *  Champion Data Utilities
  *
  *  This module provides functions for retrieving and processing champion
@@ -73,7 +73,7 @@ export async function getChampMap() {
  *              Caches the retrieved data, refreshing when a new patch is
  *              available.
  * Effects:     Calls Riot API if cache is empty or outdated. Stores fetched
- *              champion data in the global "championJson" variable.
+ *              champion data in the global "champJson" variable.
  */
 let champJson = {};
 let cachedVersion = "";

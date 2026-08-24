@@ -22,6 +22,19 @@
  */
 export async function fetchRiotAccount(gameName, tagLine) {
     const response = await fetch(`/api/account-by-riot-id?gameName=${encodeURIComponent(gameName)}&tagLine=${encodeURIComponent(tagLine)}`);
+    return await response.json();
+}
+
+/*
+ * Name:        fetchRiotAccountByPuuid()
+ * Arguments:   A string representing the player's PUUID.
+ * Returns:     A promise resolving to an object containing Riot ID information.
+ * Description: Calls the Riot API to fetch account details using gamename and
+ *              tagline.
+ * Effects:     None.
+ */
+export async function fetchRiotAccountByPuuid(puuid) {
+    const response = await fetch(`/api/account-by-puuid?puuid=${puuid}`);
     return response.json();
 }
 
@@ -46,6 +59,22 @@ export async function fetchRankedData(puuid) {
 }
 
 /*
+ * Name:        syncAndFetchPlayerPeaks()
+ * Arguments:   A string representing the player's PUUID, and their current
+ *              Solo/Duo and Flex queue ranks.
+ * Returns:     A promise resolving to an object containing the player's peak
+ *              ranks and game counts (peakSolo, peakFlex).
+ */
+export async function syncAndFetchPlayerPeaks(puuid, soloEntry, flexEntry) {
+    const response = await fetch("/api/player-peaks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ puuid, soloEntry, flexEntry })
+    });
+    return await response.json();
+}
+
+/*
  * Name:        fetchMasteryData()
  * Arguments:   A string representing the player's PUUID.
  * Returns:     A promise resolving to an object containing player mastery
@@ -55,7 +84,7 @@ export async function fetchRankedData(puuid) {
  */
 export async function fetchMasteryData(puuid) {
     const response = await fetch(`/api/champion-mastery?puuid=${puuid}`);
-    return response.json();
+    return await response.json();
 }
 
 /*
@@ -96,3 +125,20 @@ export async function fetchMatchDetails(matchId) {
     return await response.json();
 }
 
+/*
+ * Name:        fetchFlexStats()
+ * Arguments:   A string representing the a player's PUUID.
+ * Returns:     An object containing player's Flex queue stats.
+ * Description: Calls the Riot API to fetch data for a specific match.
+ * Effects:     None.
+ */
+export async function fetchFlexStats(puuid, name, gameName, tagLine) {
+    const params = new URLSearchParams({
+        puuid,
+        name: name || "",
+        gameName: gameName || "",
+        tagLine: tagLine || ""
+    });
+    const res = await fetch(`/api/player-flex-stats?${params.toString()}`);
+    return await res.json();
+}

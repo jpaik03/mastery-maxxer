@@ -65,29 +65,57 @@
           </tr>
           <tr id="row-flex-top">
             <th>
-              <img src="/images/Position_Top.png" alt="Top" class="role-icon" /> TOP
+              <span class="role-header-content"
+                ><img
+                  src="/images/Position_Top.png"
+                  alt="Top"
+                  class="role-icon"
+                />TOP</span
+              >
             </th>
           </tr>
           <tr id="row-flex-jgl">
             <th>
-              <img src="/images/Position_Jungle.png" alt="Jungle" class="role-icon" />
-              JGL
+              <span class="role-header-content"
+                ><img
+                  src="/images/Position_Jungle.png"
+                  alt="Jungle"
+                  class="role-icon"
+                />JGL</span
+              >
             </th>
           </tr>
           <tr id="row-flex-mid">
             <th>
-              <img src="/images/Position_Middle.png" alt="Mid" class="role-icon" /> MID
+              <span class="role-header-content"
+                ><img
+                  src="/images/Position_Middle.png"
+                  alt="Mid"
+                  class="role-icon"
+                />MID</span
+              >
             </th>
           </tr>
           <tr id="row-flex-bot">
             <th>
-              <img src="/images/Position_Bottom.png" alt="Bot" class="role-icon" /> BOT
+              <span class="role-header-content"
+                ><img
+                  src="/images/Position_Bottom.png"
+                  alt="Bot"
+                  class="role-icon"
+                />BOT</span
+              >
             </th>
           </tr>
           <tr id="row-flex-sup">
             <th>
-              <img src="/images/Position_Support.png" alt="Support" class="role-icon" />
-              SUP
+              <span class="role-header-content"
+                ><img
+                  src="/images/Position_Support.png"
+                  alt="Support"
+                  class="role-icon"
+                />SUP</span
+              >
             </th>
           </tr>
           <tr id="row-flex-total">
@@ -97,6 +125,88 @@
             <th>Peak Flex Rank</th>
           </tr>
         </tbody>
+      </table>
+
+      <h2>Leaderboard</h2>
+
+      <div
+        id="leaderboard-controls"
+        style="margin-bottom: 10px; font-size: 11px"
+      >
+        <label style="cursor: pointer; user-select: none">
+          <strong>Sort by:</strong>
+          <select
+            id="leaderboard-mode-select"
+            style="margin-left: 6px; padding: 2px 6px; font-size: 11px"
+          >
+            <option value="wr" selected>Winrate</option>
+            <option value="games">Games Played</option>
+          </select>
+        </label>
+      </div>
+
+      <table id="leaderboard">
+        <thead>
+          <tr>
+            <th data-sort="name">Name<span class="sort-arrow"></span></th>
+            <th data-sort="soloScore">
+              Solo/Duo Rank<span class="sort-arrow"></span>
+            </th>
+            <th data-sort="flexScore">
+              Flex Rank<span class="sort-arrow"></span>
+            </th>
+            <th data-sort="fivesScore">
+              5s Rank<span class="sort-arrow"></span>
+            </th>
+            <th data-sort="top">
+              <span class="role-header-content"
+                ><img
+                  src="/images/Position_Top.png"
+                  alt="Top"
+                  class="role-icon"
+                />S26 Flex TOP</span
+              ><span class="sort-arrow"></span>
+            </th>
+            <th data-sort="jgl">
+              <span class="role-header-content"
+                ><img
+                  src="/images/Position_Jungle.png"
+                  alt="Jungle"
+                  class="role-icon"
+                />S26 Flex JGL</span
+              ><span class="sort-arrow"></span>
+            </th>
+            <th data-sort="mid">
+              <span class="role-header-content"
+                ><img
+                  src="/images/Position_Middle.png"
+                  alt="Mid"
+                  class="role-icon"
+                />S26 Flex MID</span
+              ><span class="sort-arrow"></span>
+            </th>
+            <th data-sort="bot">
+              <span class="role-header-content"
+                ><img
+                  src="/images/Position_Bottom.png"
+                  alt="Bot"
+                  class="role-icon"
+                />S26 Flex BOT</span
+              ><span class="sort-arrow"></span>
+            </th>
+            <th data-sort="sup">
+              <span class="role-header-content"
+                ><img
+                  src="/images/Position_Support.png"
+                  alt="Support"
+                  class="role-icon"
+                />S26 Flex SUP</span
+              ><span class="sort-arrow"></span>
+            </th>
+            <th data-sort="total">Total<span class="sort-arrow"></span></th>
+          </tr>
+        </thead>
+        <tbody id="leaderboard-body"></tbody>
       </table>
     </div>
   </body>

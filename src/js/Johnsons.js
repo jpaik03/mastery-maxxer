@@ -23,6 +23,29 @@ const PLAYERS = [
 
 let championMap = {};
 let totalChampionCount = 0;
+let leaderboardData = [];
+let currentSortKey = "soloScore";
+let currentSortAsc = false;
+
+const TIER_ORDER = {
+    IRON: 0, BRONZE: 1, SILVER: 2, GOLD: 3, PLATINUM: 4,
+    EMERALD: 5, DIAMOND: 6, MASTER: 7, GRANDMASTER: 8, CHALLENGER: 9
+};
+const DIV_ORDER = { IV: 0, III: 1, II: 2, I: 3 };
+
+function getRankScore(entry) {
+    if (!entry || !entry.tier) return -1;
+    const tierVal = (TIER_ORDER[entry.tier.toUpperCase()] ?? 0) * 10000;
+    const divVal = (DIV_ORDER[entry.rank] ?? 0) * 100;
+    const lpVal = entry.leaguePoints ?? 0;
+    return tierVal + divVal + lpVal;
+}
+
+function parseWinrate(statStr) {
+    if (!statStr || statStr === "0") return -1;
+    const match = statStr.match(/\(([\d.]+)%\)/);
+    return match ? parseFloat(match[1]) : -1;
+}
 
 async function initChampionData() {
     if (Object.keys(championMap).length === 0) {
@@ -92,7 +115,7 @@ function formatPeakDisplay(peak) {
 
 function formatPoints(pts) {
     if (pts >= 1_000_000) return (pts / 1_000_000).toFixed(2) + "M";
-    return Math.round(pts / 1000) + "K";
+    return (pts / 1000).toFixed(1) + "K";
 }
 
 async function fetchPlayerProfile(player) {
@@ -126,9 +149,9 @@ async function fetchPlayerProfile(player) {
             const champName = championMap[m.championId] || `Champ ${m.championId}`;
             const champIconUrl = getChampIconUrl(champName);
             const pts = formatPoints(m.championPoints);
-            return `<img src="${champIconUrl}" alt="${champName}" title="${champName}" class="top5-champ-icon" />${pts} (${m.championLevel})`;
+            return `<div class="top5-item"><img src="${champIconUrl}" alt="${champName}" title="${champName}" data-champ-id="${m.championId}" class="top5-champ-icon" /><span>${pts} (${m.championLevel})</span></div>`;
         })
-        .join("<br>");
+        .join("");
 
     const playedChampsCount = masteryList.filter(m => m.championLevel > 0).length;
     const totalPoints = masteryList.reduce((sum, m) => sum + m.championPoints, 0);
@@ -146,7 +169,6 @@ async function fetchPlayerProfile(player) {
     document.getElementById("row-points").insertAdjacentHTML("beforeend", `<td>${totalPointsText}</td>`);
     document.getElementById("row-peak-solo").insertAdjacentHTML("beforeend", `<td>${soloPeak.rankText}</td>`);
     document.getElementById("row-peak-solo-games").insertAdjacentHTML("beforeend", `<td>${soloPeak.gamesText}</td>`);
-    document.getElementById("row-peak-flex").insertAdjacentHTML("beforeend", `<td>${flexPeak.rankText}</td>`);
 
     // S26 Flex Table
     document.getElementById("row-flex-name").insertAdjacentHTML("beforeend", `<td><strong>${player.name}</strong></td>`);
@@ -157,6 +179,149 @@ async function fetchPlayerProfile(player) {
     document.getElementById("row-flex-bot").insertAdjacentHTML("beforeend", `<td>${flexStats.BOT || "0"}</td>`);
     document.getElementById("row-flex-sup").insertAdjacentHTML("beforeend", `<td>${flexStats.SUP || "0"}</td>`);
     document.getElementById("row-flex-total").insertAdjacentHTML("beforeend", `<td>${flexStats.TOTAL || "0"}</td>`);
+    document.getElementById("row-peak-flex").insertAdjacentHTML("beforeend", `<td>${flexPeak.rankText}</td>`);
+
+    // Accumulate Leaderboard Row Data
+    leaderboardData.push({
+        name: player.name,
+        soloScore: getRankScore(solo),
+        soloHtml: soloText,
+        flexScore: getRankScore(flex),
+        flexHtml: flexText,
+        fivesScore: getRankScore(fives),
+        fivesHtml: fivesText,
+        topWr: parseWinrate(flexStats.TOP),
+        topGames: parseGamesCount(flexStats.TOP),
+        topText: flexStats.TOP || "0",
+        jglWr: parseWinrate(flexStats.JGL),
+        jglGames: parseGamesCount(flexStats.JGL),
+        jglText: flexStats.JGL || "0",
+        midWr: parseWinrate(flexStats.MID),
+        midGames: parseGamesCount(flexStats.MID),
+        midText: flexStats.MID || "0",
+        botWr: parseWinrate(flexStats.BOT),
+        botGames: parseGamesCount(flexStats.BOT),
+        botText: flexStats.BOT || "0",
+        supWr: parseWinrate(flexStats.SUP),
+        supGames: parseGamesCount(flexStats.SUP),
+        supText: flexStats.SUP || "0",
+        totalWr: parseWinrate(flexStats.TOTAL),
+        totalGames: parseGamesCount(flexStats.TOTAL),
+        totalText: flexStats.TOTAL || "0"
+    });
+}
+
+let leaderboardMode = "wr";
+
+function parseGamesCount(statStr) {
+    if (!statStr || statStr === "0") return 0;
+    const match = statStr.match(/^(\d+)/);
+    return match ? parseInt(match[1], 10) : 0;
+}
+
+function setupChampIconHighlighting() {
+    const table = document.getElementById("profile-summary");
+    if (!table) return;
+
+    table.addEventListener("mouseover", (e) => {
+        const target = e.target.closest(".top5-champ-icon");
+        if (!target) return;
+
+        const champId = target.dataset.champId;
+        if (!champId) return;
+
+        document.querySelectorAll(`.top5-champ-icon[data-champ-id="${champId}"]`).forEach(el => {
+            el.classList.add("champ-highlighted");
+        });
+    });
+
+    table.addEventListener("mouseout", (e) => {
+        const target = e.target.closest(".top5-champ-icon");
+        if (!target) return;
+
+        const champId = target.dataset.champId;
+        if (!champId) return;
+
+        document.querySelectorAll(`.top5-champ-icon[data-champ-id="${champId}"]`).forEach(el => {
+            el.classList.remove("champ-highlighted");
+        });
+    });
+}
+
+function getResolvedSortKey(key) {
+    const roleMap = {
+        top: leaderboardMode === "games" ? "topGames" : "topWr",
+        jgl: leaderboardMode === "games" ? "jglGames" : "jglWr",
+        mid: leaderboardMode === "games" ? "midGames" : "midWr",
+        bot: leaderboardMode === "games" ? "botGames" : "botWr",
+        sup: leaderboardMode === "games" ? "supGames" : "supWr",
+        total: leaderboardMode === "games" ? "totalGames" : "totalWr"
+    };
+    return roleMap[key] || key;
+}
+
+function renderLeaderboard() {
+    const tbody = document.getElementById("leaderboard-body");
+    if (!tbody) return;
+
+    const activeSortKey = getResolvedSortKey(currentSortKey);
+
+    leaderboardData.sort((a, b) => {
+        let valA = a[activeSortKey];
+        let valB = b[activeSortKey];
+
+        if (typeof valA === "string") {
+            return currentSortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        }
+        return currentSortAsc ? valA - valB : valB - valA;
+    });
+
+    tbody.innerHTML = leaderboardData.map(p => `
+        <tr>
+            <td><strong>${p.name}</strong></td>
+            <td>${p.soloHtml}</td>
+            <td>${p.flexHtml}</td>
+            <td>${p.fivesHtml}</td>
+            <td>${p.topText}</td>
+            <td>${p.jglText}</td>
+            <td>${p.midText}</td>
+            <td>${p.botText}</td>
+            <td>${p.supText}</td>
+            <td>${p.totalText}</td>
+        </tr>
+    `).join("");
+
+    document.querySelectorAll("#leaderboard th[data-sort]").forEach(th => {
+        const arrow = th.querySelector(".sort-arrow");
+        if (th.getAttribute("data-sort") === currentSortKey) {
+            arrow.textContent = currentSortAsc ? " ▲" : " ▼";
+        } else {
+            arrow.textContent = "";
+        }
+    });
+}
+
+function setupLeaderboardSorting() {
+    document.querySelectorAll("#leaderboard th[data-sort]").forEach(th => {
+        th.addEventListener("click", () => {
+            const sortKey = th.getAttribute("data-sort");
+            if (currentSortKey === sortKey) {
+                currentSortAsc = !currentSortAsc;
+            } else {
+                currentSortKey = sortKey;
+                currentSortAsc = false;
+            }
+            renderLeaderboard();
+        });
+    });
+
+    const modeSelect = document.getElementById("leaderboard-mode-select");
+    if (modeSelect) {
+        modeSelect.addEventListener("change", (e) => {
+            leaderboardMode = e.target.value;
+            renderLeaderboard();
+        });
+    }
 }
 
 async function loadAllProfiles() {
@@ -165,9 +330,9 @@ async function loadAllProfiles() {
         "row-name", "row-player", "row-level", 
         "row-solo", "row-fives", "row-top5",
         "row-champs", "row-points", "row-peak-solo", 
-        "row-peak-solo-games", "row-peak-flex", "row-flex-name", "row-flex",
+        "row-peak-solo-games", "row-flex-name", "row-flex",
         "row-flex-top", "row-flex-jgl", "row-flex-mid", "row-flex-bot",
-        "row-flex-sup", "row-flex-total"
+        "row-flex-sup", "row-flex-total", "row-peak-flex"
     ];
 
     rows.forEach(rowId => {
@@ -179,6 +344,8 @@ async function loadAllProfiles() {
         }
     });
 
+    leaderboardData = [];
+
     try {
         await initChampionData();
 
@@ -186,6 +353,7 @@ async function loadAllProfiles() {
             const p = PLAYERS[i];
             statusMsg.innerText = `Loading (${i + 1}/${PLAYERS.length}): ${p.name}...`;
             await fetchPlayerProfile(p);
+            renderLeaderboard();
         }
         statusMsg.innerText = "";
     } catch (err) {
@@ -196,5 +364,7 @@ async function loadAllProfiles() {
 
 document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("load-all-btn").addEventListener("click", loadAllProfiles);
+    setupLeaderboardSorting();
+    setupChampIconHighlighting();
     loadAllProfiles();
 });

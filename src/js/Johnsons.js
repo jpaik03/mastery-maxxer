@@ -24,6 +24,7 @@ const PLAYERS = [
 let championMap = {};
 let totalChampionCount = 0;
 let leaderboardData = [];
+let leaderboardMode = "wr";
 let currentSortKey = "soloScore";
 let currentSortAsc = false;
 
@@ -32,31 +33,6 @@ const TIER_ORDER = {
     EMERALD: 5, DIAMOND: 6, MASTER: 7, GRANDMASTER: 8, CHALLENGER: 9
 };
 const DIV_ORDER = { IV: 0, III: 1, II: 2, I: 3 };
-
-function getRankScore(entry) {
-    if (!entry || !entry.tier) return -1;
-    const tierVal = (TIER_ORDER[entry.tier.toUpperCase()] ?? 0) * 10000;
-    const divVal = (DIV_ORDER[entry.rank] ?? 0) * 100;
-    const lpVal = entry.leaguePoints ?? 0;
-    return tierVal + divVal + lpVal;
-}
-
-function parseWinrate(statStr) {
-    if (!statStr || statStr === "0") return -1;
-    const match = statStr.match(/\(([\d.]+)%\)/);
-    return match ? parseFloat(match[1]) : -1;
-}
-
-async function initChampionData() {
-    if (Object.keys(championMap).length === 0) {
-        championMap = await getChampMap();
-        totalChampionCount = Object.keys(championMap).length;
-        const headerEl = document.getElementById("header-champs");
-        if (headerEl) {
-            headerEl.innerText = `Mastery Champions (out of ${totalChampionCount})`;
-        }
-    }
-}
 
 function getRankIconImg(tier) {
     if (!tier) return "";
@@ -83,6 +59,51 @@ function formatRank(entry) {
         : `${tierShort}${divisionMap[entry.rank] || entry.rank || ""} ${entry.leaguePoints} LP`;
 
     return `<span class="rank-cell-content">${icon}<span>${rankText}</span></span>`;
+}
+
+function formatPoints(pts) {
+    if (pts >= 1_000_000) return (pts / 1_000_000).toFixed(2) + "M";
+    return (pts / 1000).toFixed(1) + "K";
+}
+
+function setupChampIconHighlighting() {
+    const table = document.getElementById("profile-summary");
+    if (!table) return;
+
+    table.addEventListener("mouseover", (e) => {
+        const target = e.target.closest(".top5-champ-icon");
+        if (!target) return;
+
+        const champId = target.dataset.champId;
+        if (!champId) return;
+
+        document.querySelectorAll(`.top5-champ-icon[data-champ-id="${champId}"]`).forEach(el => {
+            el.classList.add("champ-highlighted");
+        });
+    });
+
+    table.addEventListener("mouseout", (e) => {
+        const target = e.target.closest(".top5-champ-icon");
+        if (!target) return;
+
+        const champId = target.dataset.champId;
+        if (!champId) return;
+
+        document.querySelectorAll(`.top5-champ-icon[data-champ-id="${champId}"]`).forEach(el => {
+            el.classList.remove("champ-highlighted");
+        });
+    });
+}
+
+async function initChampionData() {
+    if (Object.keys(championMap).length === 0) {
+        championMap = await getChampMap();
+        totalChampionCount = Object.keys(championMap).length;
+        const headerEl = document.getElementById("header-champs");
+        if (headerEl) {
+            headerEl.innerText = `Mastery Champions (out of ${totalChampionCount})`;
+        }
+    }
 }
 
 function formatPeakDisplay(peak) {
@@ -113,9 +134,100 @@ function formatPeakDisplay(peak) {
     };
 }
 
-function formatPoints(pts) {
-    if (pts >= 1_000_000) return (pts / 1_000_000).toFixed(2) + "M";
-    return (pts / 1000).toFixed(1) + "K";
+function getRankScore(entry) {
+    if (!entry || !entry.tier) return -1;
+    const tierVal = (TIER_ORDER[entry.tier.toUpperCase()] ?? 0) * 10000;
+    const divVal = (DIV_ORDER[entry.rank] ?? 0) * 100;
+    const lpVal = entry.leaguePoints ?? 0;
+    return tierVal + divVal + lpVal;
+}
+
+function parseWinrate(statStr) {
+    if (!statStr || statStr === "0") return -1;
+    const match = statStr.match(/\(([\d.]+)%\)/);
+    return match ? parseFloat(match[1]) : -1;
+}
+
+function parseGamesCount(statStr) {
+    if (!statStr || statStr === "0") return 0;
+    const match = statStr.match(/^(\d+)/);
+    return match ? parseInt(match[1], 10) : 0;
+}
+
+function getResolvedSortKey(key) {
+    const roleMap = {
+        top: leaderboardMode === "games" ? "topGames" : "topWr",
+        jgl: leaderboardMode === "games" ? "jglGames" : "jglWr",
+        mid: leaderboardMode === "games" ? "midGames" : "midWr",
+        bot: leaderboardMode === "games" ? "botGames" : "botWr",
+        sup: leaderboardMode === "games" ? "supGames" : "supWr",
+        total: leaderboardMode === "games" ? "totalGames" : "totalWr"
+    };
+    return roleMap[key] || key;
+}
+
+function renderLeaderboard() {
+    const tbody = document.getElementById("leaderboard-body");
+    if (!tbody) return;
+
+    const activeSortKey = getResolvedSortKey(currentSortKey);
+
+    leaderboardData.sort((a, b) => {
+        let valA = a[activeSortKey];
+        let valB = b[activeSortKey];
+
+        if (typeof valA === "string") {
+            return currentSortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        }
+        return currentSortAsc ? valA - valB : valB - valA;
+    });
+
+    tbody.innerHTML = leaderboardData.map(p => `
+        <tr>
+            <td><strong>${p.name}</strong></td>
+            <td>${p.soloHtml}</td>
+            <td>${p.flexHtml}</td>
+            <td>${p.fivesHtml}</td>
+            <td>${p.topText}</td>
+            <td>${p.jglText}</td>
+            <td>${p.midText}</td>
+            <td>${p.botText}</td>
+            <td>${p.supText}</td>
+            <td>${p.totalText}</td>
+        </tr>
+    `).join("");
+
+    document.querySelectorAll("#leaderboard th[data-sort]").forEach(th => {
+        const arrow = th.querySelector(".sort-arrow");
+        if (th.getAttribute("data-sort") === currentSortKey) {
+            arrow.textContent = currentSortAsc ? " ▲" : " ▼";
+        } else {
+            arrow.textContent = "";
+        }
+    });
+}
+
+function setupLeaderboardSorting() {
+    document.querySelectorAll("#leaderboard th[data-sort]").forEach(th => {
+        th.addEventListener("click", () => {
+            const sortKey = th.getAttribute("data-sort");
+            if (currentSortKey === sortKey) {
+                currentSortAsc = !currentSortAsc;
+            } else {
+                currentSortKey = sortKey;
+                currentSortAsc = false;
+            }
+            renderLeaderboard();
+        });
+    });
+
+    const modeSelect = document.getElementById("leaderboard-mode-select");
+    if (modeSelect) {
+        modeSelect.addEventListener("change", (e) => {
+            leaderboardMode = e.target.value;
+            renderLeaderboard();
+        });
+    }
 }
 
 async function fetchPlayerProfile(player) {
@@ -209,119 +321,6 @@ async function fetchPlayerProfile(player) {
         totalGames: parseGamesCount(flexStats.TOTAL),
         totalText: flexStats.TOTAL || "0"
     });
-}
-
-let leaderboardMode = "wr";
-
-function parseGamesCount(statStr) {
-    if (!statStr || statStr === "0") return 0;
-    const match = statStr.match(/^(\d+)/);
-    return match ? parseInt(match[1], 10) : 0;
-}
-
-function setupChampIconHighlighting() {
-    const table = document.getElementById("profile-summary");
-    if (!table) return;
-
-    table.addEventListener("mouseover", (e) => {
-        const target = e.target.closest(".top5-champ-icon");
-        if (!target) return;
-
-        const champId = target.dataset.champId;
-        if (!champId) return;
-
-        document.querySelectorAll(`.top5-champ-icon[data-champ-id="${champId}"]`).forEach(el => {
-            el.classList.add("champ-highlighted");
-        });
-    });
-
-    table.addEventListener("mouseout", (e) => {
-        const target = e.target.closest(".top5-champ-icon");
-        if (!target) return;
-
-        const champId = target.dataset.champId;
-        if (!champId) return;
-
-        document.querySelectorAll(`.top5-champ-icon[data-champ-id="${champId}"]`).forEach(el => {
-            el.classList.remove("champ-highlighted");
-        });
-    });
-}
-
-function getResolvedSortKey(key) {
-    const roleMap = {
-        top: leaderboardMode === "games" ? "topGames" : "topWr",
-        jgl: leaderboardMode === "games" ? "jglGames" : "jglWr",
-        mid: leaderboardMode === "games" ? "midGames" : "midWr",
-        bot: leaderboardMode === "games" ? "botGames" : "botWr",
-        sup: leaderboardMode === "games" ? "supGames" : "supWr",
-        total: leaderboardMode === "games" ? "totalGames" : "totalWr"
-    };
-    return roleMap[key] || key;
-}
-
-function renderLeaderboard() {
-    const tbody = document.getElementById("leaderboard-body");
-    if (!tbody) return;
-
-    const activeSortKey = getResolvedSortKey(currentSortKey);
-
-    leaderboardData.sort((a, b) => {
-        let valA = a[activeSortKey];
-        let valB = b[activeSortKey];
-
-        if (typeof valA === "string") {
-            return currentSortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
-        }
-        return currentSortAsc ? valA - valB : valB - valA;
-    });
-
-    tbody.innerHTML = leaderboardData.map(p => `
-        <tr>
-            <td><strong>${p.name}</strong></td>
-            <td>${p.soloHtml}</td>
-            <td>${p.flexHtml}</td>
-            <td>${p.fivesHtml}</td>
-            <td>${p.topText}</td>
-            <td>${p.jglText}</td>
-            <td>${p.midText}</td>
-            <td>${p.botText}</td>
-            <td>${p.supText}</td>
-            <td>${p.totalText}</td>
-        </tr>
-    `).join("");
-
-    document.querySelectorAll("#leaderboard th[data-sort]").forEach(th => {
-        const arrow = th.querySelector(".sort-arrow");
-        if (th.getAttribute("data-sort") === currentSortKey) {
-            arrow.textContent = currentSortAsc ? " ▲" : " ▼";
-        } else {
-            arrow.textContent = "";
-        }
-    });
-}
-
-function setupLeaderboardSorting() {
-    document.querySelectorAll("#leaderboard th[data-sort]").forEach(th => {
-        th.addEventListener("click", () => {
-            const sortKey = th.getAttribute("data-sort");
-            if (currentSortKey === sortKey) {
-                currentSortAsc = !currentSortAsc;
-            } else {
-                currentSortKey = sortKey;
-                currentSortAsc = false;
-            }
-            renderLeaderboard();
-        });
-    });
-
-    const modeSelect = document.getElementById("leaderboard-mode-select");
-    if (modeSelect) {
-        modeSelect.addEventListener("change", (e) => {
-            leaderboardMode = e.target.value;
-            renderLeaderboard();
-        });
-    }
 }
 
 async function loadAllProfiles() {

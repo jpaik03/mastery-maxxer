@@ -19,6 +19,7 @@
   "homepage": "https://github.com/jpaik03/mastery-overflow#readme",
   "description": "",
   "dependencies": {
+    "@supabase/supabase-js": "^2.112.4",
     "axios": "^1.13.5",
     "dotenv": "^16.4.7",
     "express": "^4.22.1"

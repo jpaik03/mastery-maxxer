@@ -12,7 +12,7 @@
  */
 
 import { getChampIconUrl, getChampMap } from "./champData.js";
-import { fetchRiotAccount, fetchMasteryData } from "./riotApi.js";
+import { fetchRiotAccount, fetchMasteryData } from "./riotAPI.js";
 
 /*
  * Handle Riot ID search form submission

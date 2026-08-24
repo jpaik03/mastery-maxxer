@@ -26,6 +26,26 @@ export async function fetchRiotAccount(gameName, tagLine) {
 }
 
 /*
+ * Name:        fetchSummonerData()
+ * Arguments:   A string representing the player's PUUID.
+ * Returns:     A promise resolving to summoner level, icon, and summonerId.
+ */
+export async function fetchSummonerData(puuid) {
+    const response = await fetch(`/api/summoner-by-puuid?puuid=${puuid}`);
+    return await response.json();
+}
+
+/*
+ * Name:        fetchRankedData()
+ * Arguments:   A string representing the player's PUUID.
+ * Returns:     Array of ranked queue objects (Solo/Duo, Flex).
+ */
+export async function fetchRankedData(puuid) {
+    const response = await fetch(`/api/ranked-by-puuid?puuid=${puuid}`);
+    return await response.json();
+}
+
+/*
  * Name:        fetchMasteryData()
  * Arguments:   A string representing the player's PUUID.
  * Returns:     A promise resolving to an object containing player mastery
@@ -75,3 +95,4 @@ export async function fetchMatchDetails(matchId) {
     const response = await fetch(`/api/match-info?matchId=${matchId}`);
     return await response.json();
 }
+

@@ -2,137 +2,158 @@ require("dotenv").config();
 const express = require("express");
 const axios = require("axios");
 const path = require("path");
+
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 const API_KEY = process.env.API_KEY;
+const REGION = process.env.REGION || "americas";
+const PLATFORM = process.env.PLATFORM || "na1";
+
+const regionalClient = axios.create({
+  baseURL: `https://${REGION}.api.riotgames.com`,
+  headers: { "X-Riot-Token": API_KEY }
+});
+
+const platformClient = axios.create({
+  baseURL: `https://${PLATFORM}.api.riotgames.com`,
+  headers: { "X-Riot-Token": API_KEY }
+});
+
+// Error handler helper
+const handleApiError = (res, error, defaultMsg) => {
+  const status = error.response?.status || 500;
+  const message = error.response?.data?.status?.message || defaultMsg;
+  console.error(`API Error [${status}]:`, error.message);
+  return res.status(status).json({ error: message });
+};
 
 app.use(express.static(path.join(__dirname, "public")));
 app.use("/js", express.static(path.join(__dirname, "src/js")));
 app.use("/css", express.static(path.join(__dirname, "src/css")));
 
-// Get PUUID
+// API ROUTES
+
+// get PUUID by Riot ID
 app.get("/api/account-by-riot-id", async (req, res) => {
-    try {
-        const { gameName, tagLine } = req.query;
+  const { gameName, tagLine } = req.query;
+  if (!gameName || !tagLine) {
+    return res.status(400).json({ error: "Missing gameName or tagLine" });
+  }
 
-        if (!gameName || !tagLine ) {
-            return res.status(400).json({ error: "Required fields not filled in"});
-        }
-
-        const encodedtagLine = encodeURIComponent(tagLine);
-        const url = `https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${gameName}/${encodedtagLine}?api_key=${API_KEY}`;
-        
-        const response = await axios.get(url, {
-            headers: {
-                "User-Agent": "Mozilla/5.0",
-                "Accept-Language": "en-US,en;q=0.9",
-                "Accept-Charset": "application/x-www-form-urlencoded; charset=UTF-8",
-                "Origin": "https://developer.riotgames.com"
-            }
-        });
-
-        res.json(response.data);
-    } catch (error) {
-        console.error("Error fetching Riot ID data: ", error.response?.data || error.message);
-        res.status(500).json({ error: "Failed to fetch Riot account data" });
-    }
+  try {
+    const response = await regionalClient.get(
+      `/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`
+    );
+    res.json(response.data);
+  } catch (error) {
+    handleApiError(res, error, "Failed to fetch Riot account data");
+  }
 });
 
-// Get all mastery info by PUUID
+// Get summoner info (Level, icon, summonerId)
+app.get("/api/summoner-by-puuid", async (req, res) => {
+  const { puuid } = req.query;
+  if (!puuid) return res.status(400).json({ error: "PUUID required" });
+
+  try {
+    const response = await platformClient.get(`/lol/summoner/v4/summoners/by-puuid/${puuid}`);
+    res.json(response.data);
+  } catch (error) {
+    handleApiError(res, error, "Failed to fetch summoner info");
+  }
+});
+
+// Get ranked stats (Solo/Duo, Flex)
+app.get("/api/ranked-by-puuid", async (req, res) => {
+  const { puuid } = req.query;
+  if (!puuid) return res.status(400).json({ error: "PUUID required" });
+
+  try {
+    const leagueRes = await platformClient.get(`/lol/league/v4/entries/by-puuid/${puuid}`);
+    res.json(leagueRes.data);
+  } catch (error) {
+    handleApiError(res, error, "Failed to fetch ranked entries");
+  }
+});
+
+// Get all or top champion masteries
 app.get("/api/champion-mastery", async (req, res) => {
-    try {
-        const { puuid } = req.query;
+  const { puuid, count } = req.query;
+  if (!puuid) return res.status(400).json({ error: "PUUID required" });
 
-        if (!puuid) {
-            return res.status(400).json({ error: "PUUID not found"});
-        }
+  try {
+    const endpoint = count
+      ? `/lol/champion-mastery/v4/champion-masteries/by-puuid/${puuid}/top?count=${count}`
+      : `/lol/champion-mastery/v4/champion-masteries/by-puuid/${puuid}`;
 
-        const url = `https://na1.api.riotgames.com/lol/champion-mastery/v4/champion-masteries/by-puuid/${puuid}?api_key=${API_KEY}`;
-        
-        const response = await axios.get(url, {
-            headers: {
-                "User-Agent": "Mozilla/5.0",
-                "Accept-Language": "en-US,en;q=0.9",
-                "Accept-Charset": "application/x-www-form-urlencoded; charset=UTF-8",
-                "Origin": "https://developer.riotgames.com"
-            }
-        });
-
-        res.json(response.data);
-    } catch (error) {
-        console.error("Error fetching mastery data: ", error.response?.data || error.message);
-        res.status(500).json({ error: "Failed to fetch mastery data" });
-    }
+    const response = await platformClient.get(endpoint);
+    res.json(response.data);
+  } catch (error) {
+    handleApiError(res, error, "Failed to fetch mastery data");
+  }
 });
 
-// Get a particular champion's mastery info by PUUID
+// Get a specific champion's mastery
 app.get("/api/a-champion-mastery", async (req, res) => {
-    try {
-        const { puuid, championId } = req.query;
+  const { puuid, championId } = req.query;
+  if (!puuid || !championId) {
+    return res.status(400).json({ error: "PUUID and championId required" });
+  }
 
-        if (!puuid) {
-            return res.status(400).json({ error: "PUUID not found"});
-        } else if (!championId) {
-            return res.status(400).json({ error: "Champion ID not found"});
-        }
-
-        const url = `https://na1.api.riotgames.com/lol/champion-mastery/v4/champion-masteries/by-puuid/${puuid}/by-champion/${championId}?api_key=${API_KEY}`;
-        
-        const response = await axios.get(url, {
-            headers: {
-                "User-Agent": "Mozilla/5.0",
-                "Accept-Language": "en-US,en;q=0.9",
-                "Accept-Charset": "application/x-www-form-urlencoded; charset=UTF-8",
-                "Origin": "https://developer.riotgames.com"
-            }
-        });
-
-        res.json(response.data);
-    } catch (error) {
-        console.error("Error fetching mastery data: ", error.response?.data || error.message);
-        res.status(500).json({ error: "Failed to fetch mastery data" });
-    }
+  try {
+    const response = await platformClient.get(
+      `/lol/champion-mastery/v4/champion-masteries/by-puuid/${puuid}/by-champion/${championId}`
+    );
+    res.json(response.data);
+  } catch (error) {
+    handleApiError(res, error, "Failed to fetch specific champion mastery");
+  }
 });
 
-// Get match IDs by PUUID
+// 6. Get match history IDs
 app.get("/api/match-history", async (req, res) => {
-    try {
-        const { puuid, count = 20 } = req.query;
-        const url = `https://americas.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids?start=0&count=${count}&api_key=${API_KEY}`;
-        
-        const response = await axios.get(url);
-        res.json(response.data);
-    } catch (error) {
-        console.error(`Error fetching match history for PUUID ${puuid}:`, error);
-        res.status(500).json({ error: "Failed to fetch match history" });
-    }
+  const { puuid, count = 20, queue } = req.query;
+  if (!puuid) return res.status(400).json({ error: "PUUID required" });
+
+  try {
+    const params = { start: 0, count };
+    if (queue) params.queue = queue;
+
+    const response = await regionalClient.get(`/lol/match/v5/matches/by-puuid/${puuid}/ids`, { params });
+    res.json(response.data);
+  } catch (error) {
+    handleApiError(res, error, "Failed to fetch match history");
+  }
 });
 
-// Get a match info by match ID
+// Get specific match details
 app.get("/api/match-info", async (req, res) => {
-    try {
-        const { matchId } = req.query;
-        const url = `https://americas.api.riotgames.com/lol/match/v5/matches/${matchId}?api_key=${API_KEY}`;
-        
-        const response = await axios.get(url);
-        res.json(response.data);
-    } catch (error) {
-        console.error(`Error fetching match details for ${matchId}:`, error);
-        res.status(500).json({ error: "Failed to fetch match details" });
-    }
+  const { matchId } = req.query;
+  if (!matchId) return res.status(400).json({ error: "Match ID required" });
+
+  try {
+    const response = await regionalClient.get(`/lol/match/v5/matches/${matchId}`);
+    res.json(response.data);
+  } catch (error) {
+    handleApiError(res, error, "Failed to fetch match details");
+  }
 });
 
-// Route for homepage
+// Route for HTML pages
 app.get("/MasteryMaxxer", (req, res) => {
-    res.sendFile(path.join(__dirname, "public", "MasteryMaxxer.html"));
+  res.sendFile(path.join(__dirname, "public", "MasteryMaxxer.html"));
 });
 
 app.get("/Comparer", (req, res) => {
-    res.sendFile(path.join(__dirname, "public", "Comparer.html"));
+  res.sendFile(path.join(__dirname, "public", "Comparer.html"));
+});
+
+app.get("/Johnsons", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "Johnsons.html"));
 });
 
 // Start server
 app.listen(PORT, () => {
-    console.log(`Server running at http://localhost:${PORT}/MasteryMaxxer`);
+  console.log(`Server running at http://localhost:${PORT}/Johnsons`);
 });

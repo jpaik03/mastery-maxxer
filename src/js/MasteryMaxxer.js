@@ -2,7 +2,7 @@
  *  MasteryMaxxer.js
  *  Justin Paik
  *  Created: 16 March 2025
- *  Last Updated: 28 May 2025 
+ *  Last Updated: 24 August 2026
  *  Riot API Mastery Maxxer
  *
  *  This script handles fetching champion mastery data for a given Riot ID. It

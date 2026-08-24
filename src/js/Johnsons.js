@@ -6,7 +6,7 @@ import {
     fetchFlexStats,
     syncAndFetchPlayerPeaks
 } from "./riotAPI.js";
-import { getChampMap } from "./champData.js";
+import { getChampMap, getChampIconUrl } from "./champData.js";
 
 const PLAYERS = [
     { name: "Aileen", puuid: "wUX2hh9YBwf66OZjsn6SauURG6dyrYsBklTqHvMv6f-EMlcKH87g_lds17PEVnbEd26gsJOwQQB1kg" },
@@ -35,17 +35,64 @@ async function initChampionData() {
     }
 }
 
+function getRankIconImg(tier) {
+    if (!tier) return "";
+    const formattedTier = tier.charAt(0).toUpperCase() + tier.slice(1).toLowerCase();
+    return `<img src="/images/Rank_${formattedTier}.png" alt="${tier}" class="rank-icon" />`;
+}
+
+function formatRank(entry) {
+    if (!entry || !entry.tier) return "Unranked";
+
+    const tierMap = {
+        IRON: "I", BRONZE: "B", SILVER: "S", GOLD: "G",
+        PLATINUM: "P", EMERALD: "E", DIAMOND: "D",
+        MASTER: "Master", GRANDMASTER: "GM", CHALLENGER: "Challenger"
+    };
+    const divisionMap = { I: "1", II: "2", III: "3", IV: "4" };
+
+    const tierShort = tierMap[entry.tier.toUpperCase()] || entry.tier;
+    const isApex = ["MASTER", "GRANDMASTER", "CHALLENGER"].includes(entry.tier.toUpperCase());
+    const icon = getRankIconImg(entry.tier);
+
+    const rankText = isApex 
+        ? `${tierShort} ${entry.leaguePoints} LP` 
+        : `${tierShort}${divisionMap[entry.rank] || entry.rank || ""} ${entry.leaguePoints} LP`;
+
+    return `<span class="rank-cell-content">${icon}<span>${rankText}</span></span>`;
+}
+
 function formatPeakDisplay(peak) {
     if (!peak || !peak.tier) return { rankText: "Unranked", gamesText: "0" };
+    
     const currentYear = new Date().getFullYear();
-    const rankStr = formatRank({ tier: peak.tier, rank: peak.rank, leaguePoints: peak.lp });
     const isCurrentYear = peak.year === currentYear;
     const yearFormatted = isCurrentYear ? `<strong>(${peak.year})</strong>` : `(${peak.year})`;
 
+    const tierMap = {
+        IRON: "I", BRONZE: "B", SILVER: "S", GOLD: "G",
+        PLATINUM: "P", EMERALD: "E", DIAMOND: "D",
+        MASTER: "Master", GRANDMASTER: "GM", CHALLENGER: "Challenger"
+    };
+    const divisionMap = { I: "1", II: "2", III: "3", IV: "4" };
+
+    const tierShort = tierMap[peak.tier.toUpperCase()] || peak.tier;
+    const isApex = ["MASTER", "GRANDMASTER", "CHALLENGER"].includes(peak.tier.toUpperCase());
+    const icon = getRankIconImg(peak.tier);
+
+    const rankText = isApex 
+        ? `${tierShort} ${peak.lp} LP` 
+        : `${tierShort}${divisionMap[peak.rank] || peak.rank || ""} ${peak.lp} LP`;
+
     return {
-        rankText: `${rankStr} ${yearFormatted}`,
+        rankText: `<span class="rank-cell-content">${icon}<span>${rankText} ${yearFormatted}</span></span>`,
         gamesText: `${peak.games || 0} (${peak.wins || 0}W ${peak.losses || 0}L)`
     };
+}
+
+function formatPoints(pts) {
+    if (pts >= 1_000_000) return (pts / 1_000_000).toFixed(2) + "M";
+    return Math.round(pts / 1000) + "K";
 }
 
 async function fetchPlayerProfile(player) {
@@ -68,7 +115,6 @@ async function fetchPlayerProfile(player) {
     const flexText = formatRank(flex);
     const fivesText = formatRank(fives);
 
-    // Dynamic peak sync from Supabase
     const peakData = await syncAndFetchPlayerPeaks(player.puuid, solo, flex);
     const soloPeak = formatPeakDisplay(peakData.peakSolo);
     const flexPeak = formatPeakDisplay(peakData.peakFlex);
@@ -78,8 +124,9 @@ async function fetchPlayerProfile(player) {
         .slice(0, 5)
         .map(m => {
             const champName = championMap[m.championId] || `Champ ${m.championId}`;
+            const champIconUrl = getChampIconUrl(champName);
             const pts = formatPoints(m.championPoints);
-            return `${champName}; ${pts} (${m.championLevel})`;
+            return `<img src="${champIconUrl}" alt="${champName}" title="${champName}" class="top5-champ-icon" />${pts} (${m.championLevel})`;
         })
         .join("<br>");
 
@@ -88,20 +135,22 @@ async function fetchPlayerProfile(player) {
     const totalMasteryLevel = masteryList.reduce((sum, m) => sum + m.championLevel, 0);
     const totalPointsText = `${totalPoints.toLocaleString()} (${totalMasteryLevel})`;
 
-    // Append cells
+    // Profile Summary Table
     document.getElementById("row-name").insertAdjacentHTML("beforeend", `<td><strong>${player.name}</strong></td>`);
     document.getElementById("row-player").insertAdjacentHTML("beforeend", `<td>${account.gameName}#${account.tagLine}</td>`);
     document.getElementById("row-level").insertAdjacentHTML("beforeend", `<td>${summoner.summonerLevel}</td>`);
     document.getElementById("row-solo").insertAdjacentHTML("beforeend", `<td>${soloText}</td>`);
-    document.getElementById("row-peak-solo").insertAdjacentHTML("beforeend", `<td>${soloPeak.rankText}</td>`);
-    document.getElementById("row-peak-solo-games").insertAdjacentHTML("beforeend", `<td>${soloPeak.gamesText}</td>`);
-    document.getElementById("row-flex").insertAdjacentHTML("beforeend", `<td>${flexText}</td>`);
-    document.getElementById("row-peak-flex").insertAdjacentHTML("beforeend", `<td>${flexPeak.rankText}</td>`);
-    document.getElementById("row-peak-flex-games").insertAdjacentHTML("beforeend", `<td>${flexPeak.gamesText}</td>`);
     document.getElementById("row-fives").insertAdjacentHTML("beforeend", `<td>${fivesText}</td>`);
     document.getElementById("row-top5").insertAdjacentHTML("beforeend", `<td>${top5Text}</td>`);
     document.getElementById("row-champs").insertAdjacentHTML("beforeend", `<td>${playedChampsCount}</td>`);
     document.getElementById("row-points").insertAdjacentHTML("beforeend", `<td>${totalPointsText}</td>`);
+    document.getElementById("row-peak-solo").insertAdjacentHTML("beforeend", `<td>${soloPeak.rankText}</td>`);
+    document.getElementById("row-peak-solo-games").insertAdjacentHTML("beforeend", `<td>${soloPeak.gamesText}</td>`);
+    document.getElementById("row-peak-flex").insertAdjacentHTML("beforeend", `<td>${flexPeak.rankText}</td>`);
+
+    // S26 Flex Table
+    document.getElementById("row-flex-name").insertAdjacentHTML("beforeend", `<td><strong>${player.name}</strong></td>`);
+    document.getElementById("row-flex").insertAdjacentHTML("beforeend", `<td>${flexText}</td>`);
     document.getElementById("row-flex-top").insertAdjacentHTML("beforeend", `<td>${flexStats.TOP || "0"}</td>`);
     document.getElementById("row-flex-jgl").insertAdjacentHTML("beforeend", `<td>${flexStats.JGL || "0"}</td>`);
     document.getElementById("row-flex-mid").insertAdjacentHTML("beforeend", `<td>${flexStats.MID || "0"}</td>`);
@@ -114,10 +163,11 @@ async function loadAllProfiles() {
     const statusMsg = document.getElementById("status-msg");
     const rows = [
         "row-name", "row-player", "row-level", 
-        "row-solo", "row-peak-solo", "row-peak-solo-games", "row-flex",
-        "row-peak-flex", "row-peak-flex-games", "row-fives", "row-top5",
-        "row-champs", "row-points", "row-flex-top", "row-flex-jgl",
-        "row-flex-mid", "row-flex-bot", "row-flex-sup", "row-flex-total"
+        "row-solo", "row-fives", "row-top5",
+        "row-champs", "row-points", "row-peak-solo", 
+        "row-peak-solo-games", "row-peak-flex", "row-flex-name", "row-flex",
+        "row-flex-top", "row-flex-jgl", "row-flex-mid", "row-flex-bot",
+        "row-flex-sup", "row-flex-total"
     ];
 
     rows.forEach(rowId => {
@@ -142,30 +192,6 @@ async function loadAllProfiles() {
         console.error(err);
         statusMsg.innerText = `Error: ${err.message}`;
     }
-}
-
-function formatRank(entry) {
-    if (!entry || !entry.tier) return "Unranked";
-
-    const tierMap = {
-        IRON: "I", BRONZE: "B", SILVER: "S", GOLD: "G",
-        PLATINUM: "P", EMERALD: "E", DIAMOND: "D",
-        MASTER: "Master", GRANDMASTER: "GM", CHALLENGER: "Challenger"
-    };
-    const divisionMap = { I: "1", II: "2", III: "3", IV: "4" };
-
-    const tierShort = tierMap[entry.tier.toUpperCase()] || entry.tier;
-    const isApex = ["MASTER", "GRANDMASTER", "CHALLENGER"].includes(entry.tier.toUpperCase());
-
-    if (isApex) return `${tierShort} ${entry.leaguePoints} LP`;
-
-    const divShort = divisionMap[entry.rank] || entry.rank || "";
-    return `${tierShort}${divShort} ${entry.leaguePoints} LP`;
-}
-
-function formatPoints(pts) {
-    if (pts >= 1_000_000) return (pts / 1_000_000).toFixed(2) + "M";
-    return Math.round(pts / 1000) + "K";
 }
 
 document.addEventListener("DOMContentLoaded", () => {

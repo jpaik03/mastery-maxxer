@@ -2,7 +2,7 @@
  *  riotApi.js
  *  Justin Paik
  *  Created: 27 May 2025
- *  Last Updated: 27 May 2025
+ *  Last Updated: 24 August 2026
  *  Riot API helper functions
  * 
  *  This module provides asynchronous functions to interact with Riot's API

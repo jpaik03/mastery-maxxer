@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Johnsons League Tracker</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/css/base.css" />
+    <link rel="stylesheet" href="/css/Johnsonsstyles.css" />
+    <script type="module" src="/js/Johnsons.js"></script>
+  </head>
+  <body>
+    <h1>Johnsons</h1>
+
+    <div id="controls">
+      <button type="button" id="load-all-btn">Refresh All Profiles</button>
+    </div>
+
+    <div id="status-msg" style="margin-top: 10px; font-weight: bold"></div>
+
+    <div style="overflow-x: auto; margin-top: 20px;">
+      <table id="profile-summary">
+        <tbody>
+          <tr id="row-name"><th>Name</th></tr>
+          <tr id="row-player"><th>Player</th></tr>
+          <tr id="row-level"><th>Level</th></tr>
+          <tr id="row-solo"><th>Current Solo/Duo Rank</th></tr>
+          <tr id="row-flex"><th>Current Flex Rank</th></tr>
+          <tr id="row-fives"><th>Current 5s Rank</th></tr>
+          <tr id="row-top5"><th>Top 5 Mastery</th></tr>
+          <tr id="row-champs"><th id="header-champs">Mastery Champions</th></tr>
+          <tr id="row-points"><th>Total Mastery Points</th></tr>
+          <tr id="row-peak-solo"><th>Peak Solo/Duo Rank</th></tr>
+          <tr id="row-peak-solo-games"><th>Solo Games</th></tr>
+          <tr id="row-peak-flex"><th>Peak Flex Rank</th></tr>
+          <tr id="row-peak-flex-games"><th>Flex Games</th></tr>
+          <tr id="row-flex-top"><th>S26 Flex TOP Games (WR%)</th></tr>
+          <tr id="row-flex-jgl"><th>S26 Flex JGL Games (WR%)</th></tr>
+          <tr id="row-flex-mid"><th>S26 Flex MID Games (WR%)</th></tr>
+          <tr id="row-flex-bot"><th>S26 Flex BOT Games (WR%)</th></tr>
+          <tr id="row-flex-sup"><th>S26 Flex SUP Games (WR%)</th></tr>
+          <tr id="row-flex-total"><th>S26 Flex Games (WR%)</th></tr>
+        </tbody>
+      </table>
+    </div>
+  </body>
+</html>

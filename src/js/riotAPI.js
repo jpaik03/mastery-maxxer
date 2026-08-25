@@ -4,7 +4,7 @@
  *  Created: 27 May 2025
  *  Last Updated: 24 August 2026
  *  Riot API helper functions
- * 
+ *
  *  This module provides asynchronous functions to interact with Riot's API
  *  endpoints. It includes methods for fetching account information by Riot ID,
  *  champion mastery data, specific champion mastery, match history, and
@@ -21,7 +21,9 @@
  * Effects:     None.
  */
 export async function fetchRiotAccount(gameName, tagLine) {
-    const response = await fetch(`/api/account-by-riot-id?gameName=${encodeURIComponent(gameName)}&tagLine=${encodeURIComponent(tagLine)}`);
+    const response = await fetch(
+        `/api/account-by-riot-id?gameName=${encodeURIComponent(gameName)}&tagLine=${encodeURIComponent(tagLine)}`,
+    );
     return await response.json();
 }
 
@@ -69,7 +71,7 @@ export async function syncAndFetchPlayerPeaks(puuid, soloEntry, flexEntry) {
     const response = await fetch("/api/player-peaks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ puuid, soloEntry, flexEntry })
+        body: JSON.stringify({ puuid, soloEntry, flexEntry }),
     });
     return await response.json();
 }
@@ -97,7 +99,9 @@ export async function fetchMasteryData(puuid) {
  * Effects:     None.
  */
 export async function fetchAChampMastery(puuid, champId) {
-    const response = await fetch(`/api/a-champion-mastery?puuid=${puuid}&championId=${champId}`);
+    const response = await fetch(
+        `/api/a-champion-mastery?puuid=${puuid}&championId=${champId}`,
+    );
     return await response.json();
 }
 
@@ -137,7 +141,7 @@ export async function fetchFlexStats(puuid, name, gameName, tagLine) {
         puuid,
         name: name || "",
         gameName: gameName || "",
-        tagLine: tagLine || ""
+        tagLine: tagLine || "",
     });
     const res = await fetch(`/api/player-flex-stats?${params.toString()}`);
     return await res.json();

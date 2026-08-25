@@ -270,56 +270,44 @@ app.get("/api/player-flex-stats", async (req, res) => {
 
                 if (participant) {
                     const isRemake =
-                        participant.gameEndedInEarlySurrender === true ||
-                        (match.info.gameDuration &&
-                            match.info.gameDuration < 300);
+                        participant.gameEndedInEarlySurrender ||
+                        match.info.gameDuration < 300;
 
                     if (!isRemake) {
                         const pingData = {
                             allIn: participant.allInPings || 0,
                             assistMe: participant.assistMePings || 0,
-                            basic: participant.basicPings || 0,
-                            command: participant.commandPings || 0,
+                            basic: participant.commandPings || 0,
                             danger: participant.dangerPings || 0,
                             enemyMissing: participant.enemyMissingPings || 0,
                             enemyVision: participant.enemyVisionPings || 0,
                             getBack: participant.getBackPings || 0,
-                            hold: participant.holdPings || 0,
                             needVision: participant.needVisionPings || 0,
                             onMyWay: participant.onMyWayPings || 0,
                             push: participant.pushPings || 0,
                             visionCleared: participant.visionClearedPings || 0,
                         };
 
-                        const { error: matchInsertError } = await supabase
-                            .from("player_matches")
-                            .upsert(
-                                {
-                                    match_id: matchId,
-                                    puuid: puuid,
-                                    queue_id: match.info.queueId,
-                                    game_creation: match.info.gameCreation,
-                                    champion_id: participant.championId,
-                                    champion_name: participant.championName,
-                                    team_position:
-                                        participant.individualPosition ||
-                                        participant.teamPosition ||
-                                        "UNKNOWN",
-                                    win: Boolean(participant.win),
-                                    quadra_kills: participant.quadraKills || 0,
-                                    penta_kills: participant.pentaKills || 0,
-                                    team_id: participant.teamId,
-                                    pings: pingData,
-                                },
-                                { onConflict: "match_id, puuid" },
-                            );
-
-                        if (matchInsertError) {
-                            console.error(
-                                `Failed to insert match ${matchId} for ${puuid}:`,
-                                matchInsertError,
-                            );
-                        }
+                        await supabase.from("player_matches").upsert(
+                            {
+                                match_id: matchId,
+                                puuid: puuid,
+                                queue_id: match.info.queueId,
+                                game_creation: match.info.gameCreation,
+                                champion_id: participant.championId,
+                                champion_name: participant.championName,
+                                team_position:
+                                    participant.individualPosition ||
+                                    participant.teamPosition ||
+                                    "UNKNOWN",
+                                win: Boolean(participant.win),
+                                quadra_kills: participant.quadraKills || 0,
+                                penta_kills: participant.pentaKills || 0,
+                                team_id: participant.teamId,
+                                pings: pingData,
+                            },
+                            { onConflict: "match_id, puuid" },
+                        );
                     }
                 }
 
@@ -356,12 +344,10 @@ app.get("/api/player-flex-stats", async (req, res) => {
             allIn: 0,
             assistMe: 0,
             basic: 0,
-            command: 0,
             danger: 0,
             enemyMissing: 0,
             enemyVision: 0,
             getBack: 0,
-            hold: 0,
             needVision: 0,
             onMyWay: 0,
             push: 0,
@@ -384,12 +370,10 @@ app.get("/api/player-flex-stats", async (req, res) => {
             const allIn = p.allIn || 0;
             const assistMe = p.assistMe || 0;
             const basic = p.basic || 0;
-            const command = p.command || 0;
             const danger = p.danger || 0;
             const enemyMissing = p.enemyMissing || 0;
             const enemyVision = p.enemyVision || 0;
             const getBack = p.getBack || 0;
-            const hold = p.hold || 0;
             const needVision = p.needVision || 0;
             const onMyWay = p.onMyWay || 0;
             const push = p.push || 0;
@@ -399,12 +383,10 @@ app.get("/api/player-flex-stats", async (req, res) => {
                 allIn +
                 assistMe +
                 basic +
-                command +
                 danger +
                 enemyMissing +
                 enemyVision +
                 getBack +
-                hold +
                 needVision +
                 onMyWay +
                 push +
@@ -413,12 +395,10 @@ app.get("/api/player-flex-stats", async (req, res) => {
             pingTotals.allIn += allIn;
             pingTotals.assistMe += assistMe;
             pingTotals.basic += basic;
-            pingTotals.command += command;
             pingTotals.danger += danger;
             pingTotals.enemyMissing += enemyMissing;
             pingTotals.enemyVision += enemyVision;
             pingTotals.getBack += getBack;
-            pingTotals.hold += hold;
             pingTotals.needVision += needVision;
             pingTotals.onMyWay += onMyWay;
             pingTotals.push += push;
@@ -434,12 +414,10 @@ app.get("/api/player-flex-stats", async (req, res) => {
             allIn: avg(pingTotals.allIn),
             assistMe: avg(pingTotals.assistMe),
             basic: avg(pingTotals.basic),
-            command: avg(pingTotals.command),
             danger: avg(pingTotals.danger),
             enemyMissing: avg(pingTotals.enemyMissing),
             enemyVision: avg(pingTotals.enemyVision),
             getBack: avg(pingTotals.getBack),
-            hold: avg(pingTotals.hold),
             needVision: avg(pingTotals.needVision),
             onMyWay: avg(pingTotals.onMyWay),
             push: avg(pingTotals.push),
@@ -458,6 +436,8 @@ app.get("/api/player-flex-stats", async (req, res) => {
             SUP: formatWR(roles.UTILITY.wins, roles.UTILITY.total),
             TOTAL: formatWR(totalWins, totalGamesCount),
             pings: pingsAvg,
+            syncedMatchCount: allNewMatchIds.length,
+            storedMatchCount: flexMatches?.length || 0,
         });
     } catch (error) {
         handleApiError(res, error, "Failed to aggregate Flex stats");

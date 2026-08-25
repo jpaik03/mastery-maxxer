@@ -285,7 +285,6 @@ app.get("/api/player-flex-stats", async (req, res) => {
                             needVision: participant.needVisionPings || 0,
                             onMyWay: participant.onMyWayPings || 0,
                             push: participant.pushPings || 0,
-                            visionCleared: participant.visionClearedPings || 0,
                         };
 
                         await supabase.from("player_matches").upsert(
@@ -351,7 +350,6 @@ app.get("/api/player-flex-stats", async (req, res) => {
             needVision: 0,
             onMyWay: 0,
             push: 0,
-            visionCleared: 0,
             total: 0,
         };
 
@@ -377,7 +375,6 @@ app.get("/api/player-flex-stats", async (req, res) => {
             const needVision = p.needVision || 0;
             const onMyWay = p.onMyWay || 0;
             const push = p.push || 0;
-            const visionCleared = p.visionCleared || 0;
 
             const matchTotal =
                 allIn +
@@ -389,8 +386,7 @@ app.get("/api/player-flex-stats", async (req, res) => {
                 getBack +
                 needVision +
                 onMyWay +
-                push +
-                visionCleared;
+                push;
 
             pingTotals.allIn += allIn;
             pingTotals.assistMe += assistMe;
@@ -402,7 +398,6 @@ app.get("/api/player-flex-stats", async (req, res) => {
             pingTotals.needVision += needVision;
             pingTotals.onMyWay += onMyWay;
             pingTotals.push += push;
-            pingTotals.visionCleared += visionCleared;
             pingTotals.total += matchTotal;
         });
 
@@ -421,7 +416,6 @@ app.get("/api/player-flex-stats", async (req, res) => {
             needVision: avg(pingTotals.needVision),
             onMyWay: avg(pingTotals.onMyWay),
             push: avg(pingTotals.push),
-            visionCleared: avg(pingTotals.visionCleared),
             total: avg(pingTotals.total),
         };
 

@@ -339,6 +339,11 @@ function renderPingsLeaderboard() {
     tbody.innerHTML = pingsLeaderboardData
         .map((p) => {
             const src = pingsDisplayMode === "total" ? p.raw : p.avg;
+            const totalText =
+                pingsDisplayMode === "total"
+                    ? `${formatVal(src.total)} (${p.gamesCount})`
+                    : formatVal(src.total);
+
             return `
         <tr>
             <td><strong>${p.name}</strong></td>
@@ -352,8 +357,7 @@ function renderPingsLeaderboard() {
             <td>${formatVal(src.needVision)}</td>
             <td>${formatVal(src.onMyWay)}</td>
             <td>${formatVal(src.push)}</td>
-            <td>${formatVal(src.visionCleared)}</td>
-            <td><strong>${formatVal(src.total)}</strong></td>
+            <td><strong>${totalText}</strong></td>
         </tr>
     `;
         })
@@ -567,6 +571,8 @@ async function fetchPlayerProfile(player) {
     const raw = flexStats.rawPings || {};
     pingsLeaderboardData.push({
         name: player.name,
+        gamesCount:
+            flexStats.storedMatchCount || parseGamesCount(flexStats.TOTAL) || 0,
         avg: {
             allIn: parseFloat(pings.allIn || 0),
             assistMe: parseFloat(pings.assistMe || 0),
@@ -578,7 +584,6 @@ async function fetchPlayerProfile(player) {
             needVision: parseFloat(pings.needVision || 0),
             onMyWay: parseFloat(pings.onMyWay || 0),
             push: parseFloat(pings.push || 0),
-            visionCleared: parseFloat(pings.visionCleared || 0),
             total: parseFloat(pings.total || 0),
         },
         raw: {
@@ -592,7 +597,6 @@ async function fetchPlayerProfile(player) {
             needVision: raw.needVision || 0,
             onMyWay: raw.onMyWay || 0,
             push: raw.push || 0,
-            visionCleared: raw.visionCleared || 0,
             total: raw.total || 0,
         },
     });

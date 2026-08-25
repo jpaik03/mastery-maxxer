@@ -188,6 +188,7 @@ function renderLeaderboard() {
             <td>${p.soloHtml}</td>
             <td>${p.flexHtml}</td>
             <td>${p.fivesHtml}</td>
+            <td>${p.masteryText}</td>
             <td>${p.topText}</td>
             <td>${p.jglText}</td>
             <td>${p.midText}</td>
@@ -302,6 +303,8 @@ async function fetchPlayerProfile(player) {
         flexHtml: flexText,
         fivesScore: getRankScore(fives),
         fivesHtml: fivesText,
+        masteryPoints: totalPoints,
+        masteryText: totalPointsText,
         topWr: parseWinrate(flexStats.TOP),
         topGames: parseGamesCount(flexStats.TOP),
         topText: flexStats.TOP || "0",

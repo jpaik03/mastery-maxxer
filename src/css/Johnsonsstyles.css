@@ -162,6 +162,15 @@ tbody th .role-header-content {
   background-color: #dfe3e6;
 }
 
+#leaderboard-controls,
+#pings-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 10px;
+  font-size: 11px;
+}
+
 .sort-arrow {
   display: inline-block;
   font-size: 9px;

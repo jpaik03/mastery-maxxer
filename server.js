@@ -436,8 +436,9 @@ app.get("/api/player-flex-stats", async (req, res) => {
             SUP: formatWR(roles.UTILITY.wins, roles.UTILITY.total),
             TOTAL: formatWR(totalWins, totalGamesCount),
             pings: pingsAvg,
+            rawPings: pingTotals,
             syncedMatchCount: allNewMatchIds.length,
-            storedMatchCount: flexMatches?.length || 0,
+            storedMatchCount: totalGamesCount,
         });
     } catch (error) {
         handleApiError(res, error, "Failed to aggregate Flex stats");

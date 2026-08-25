@@ -18,6 +18,8 @@
     <div id="status-msg" style="margin-top: 10px; font-weight: bold"></div>
 
     <div style="overflow-x: auto; margin-top: 20px">
+      <!-- Profile Summary -->
+
       <table id="profile-summary">
         <tbody>
           <tr id="row-name">
@@ -52,6 +54,8 @@
           </tr>
         </tbody>
       </table>
+
+      <!-- Flex Queue -->
 
       <h2>S26 Flex Queue</h2>
 
@@ -121,6 +125,8 @@
           </tr>
         </tbody>
       </table>
+
+      <!-- Leaderboard -->
 
       <h2>Leaderboard</h2>
 
@@ -200,7 +206,21 @@
         <tbody id="leaderboard-body"></tbody>
       </table>
 
+      <!-- Ping Chart -->
+
       <h2>Stop pinging me (S26 Flex)</h2>
+
+      <div id="pings-controls" style="margin-bottom: 10px; font-size: 11px">
+        <label style="cursor: pointer; user-select: none">
+          <strong>Display:</strong>
+          <select
+            id="pings-mode-select"
+            style="margin-left: 6px; padding: 2px 6px; font-size: 11px">
+            <option value="avg" selected>Average per Game</option>
+            <option value="total">Total Pings</option>
+          </select>
+        </label>
+      </div>
 
       <table id="pings-leaderboard">
         <thead>
@@ -305,7 +325,9 @@
                   class="role-icon" /> </span
               ><span class="sort-arrow"></span>
             </th>
-            <th data-sort="total">Total Avg<span class="sort-arrow"></span></th>
+            <th data-sort="total" id="pings-total-header">
+              Total Avg<span class="sort-arrow"></span>
+            </th>
           </tr>
         </thead>
         <tbody id="pings-leaderboard-body"></tbody>

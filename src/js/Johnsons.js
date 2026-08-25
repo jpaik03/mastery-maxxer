@@ -301,6 +301,7 @@ function setupLeaderboardSorting() {
 }
 
 let pingsLeaderboardData = [];
+let pingsDisplayMode = "avg";
 let currentPingSortKey = "total";
 let currentPingSortAsc = false;
 
@@ -309,8 +310,18 @@ function renderPingsLeaderboard() {
     if (!tbody) return;
 
     pingsLeaderboardData.sort((a, b) => {
-        let valA = a[currentPingSortKey];
-        let valB = b[currentPingSortKey];
+        const valA =
+            currentPingSortKey === "name"
+                ? a.name
+                : pingsDisplayMode === "total"
+                  ? a.raw[currentPingSortKey]
+                  : a.avg[currentPingSortKey];
+        const valB =
+            currentPingSortKey === "name"
+                ? b.name
+                : pingsDisplayMode === "total"
+                  ? b.raw[currentPingSortKey]
+                  : b.avg[currentPingSortKey];
 
         if (typeof valA === "string" && currentPingSortKey === "name") {
             return currentPingSortAsc
@@ -320,36 +331,52 @@ function renderPingsLeaderboard() {
         return currentPingSortAsc ? valA - valB : valB - valA;
     });
 
+    const formatVal = (num) =>
+        pingsDisplayMode === "total"
+            ? Math.round(num).toLocaleString()
+            : num.toFixed(1);
+
     tbody.innerHTML = pingsLeaderboardData
-        .map(
-            (p) => `
+        .map((p) => {
+            const src = pingsDisplayMode === "total" ? p.raw : p.avg;
+            return `
         <tr>
             <td><strong>${p.name}</strong></td>
-            <td>${p.allIn.toFixed(1)}</td>
-            <td>${p.assistMe.toFixed(1)}</td>
-            <td>${p.basic.toFixed(1)}</td>
-            <td>${p.danger.toFixed(1)}</td>
-            <td>${p.enemyMissing.toFixed(1)}</td>
-            <td>${p.enemyVision.toFixed(1)}</td>
-            <td>${p.getBack.toFixed(1)}</td>
-            <td>${p.needVision.toFixed(1)}</td>
-            <td>${p.onMyWay.toFixed(1)}</td>
-            <td>${p.push.toFixed(1)}</td>
-            <td>${p.visionCleared.toFixed(1)}</td>
-            <td><strong>${p.total.toFixed(1)}</strong></td>
+            <td>${formatVal(src.allIn)}</td>
+            <td>${formatVal(src.assistMe)}</td>
+            <td>${formatVal(src.basic)}</td>
+            <td>${formatVal(src.danger)}</td>
+            <td>${formatVal(src.enemyMissing)}</td>
+            <td>${formatVal(src.enemyVision)}</td>
+            <td>${formatVal(src.getBack)}</td>
+            <td>${formatVal(src.needVision)}</td>
+            <td>${formatVal(src.onMyWay)}</td>
+            <td>${formatVal(src.push)}</td>
+            <td>${formatVal(src.visionCleared)}</td>
+            <td><strong>${formatVal(src.total)}</strong></td>
         </tr>
-    `,
-        )
+    `;
+        })
         .join("");
+
+    const totalHeader = document.getElementById("pings-total-header");
+    if (totalHeader) {
+        const arrowSpan =
+            totalHeader.querySelector(".sort-arrow")?.outerHTML ||
+            '<span class="sort-arrow"></span>';
+        totalHeader.innerHTML = `${pingsDisplayMode === "total" ? "Total Pings" : "Total Avg"}${arrowSpan}`;
+    }
 
     document
         .querySelectorAll("#pings-leaderboard th[data-sort]")
         .forEach((th) => {
             const arrow = th.querySelector(".sort-arrow");
-            if (th.getAttribute("data-sort") === currentPingSortKey) {
-                arrow.textContent = currentPingSortAsc ? " ▲" : " ▼";
-            } else {
-                arrow.textContent = "";
+            if (arrow) {
+                if (th.getAttribute("data-sort") === currentPingSortKey) {
+                    arrow.textContent = currentPingSortAsc ? " ▲" : " ▼";
+                } else {
+                    arrow.textContent = "";
+                }
             }
         });
 }
@@ -369,6 +396,14 @@ function setupPingsLeaderboardSorting() {
                 renderPingsLeaderboard();
             });
         });
+
+    const modeSelect = document.getElementById("pings-mode-select");
+    if (modeSelect) {
+        modeSelect.addEventListener("change", (e) => {
+            pingsDisplayMode = e.target.value;
+            renderPingsLeaderboard();
+        });
+    }
 }
 
 async function fetchPlayerProfile(player) {
@@ -529,20 +564,37 @@ async function fetchPlayerProfile(player) {
 
     // Pings
     const pings = flexStats.pings || {};
+    const raw = flexStats.rawPings || {};
     pingsLeaderboardData.push({
         name: player.name,
-        allIn: parseFloat(pings.allIn || 0),
-        assistMe: parseFloat(pings.assistMe || 0),
-        basic: parseFloat(pings.basic || 0),
-        danger: parseFloat(pings.danger || 0),
-        enemyMissing: parseFloat(pings.enemyMissing || 0),
-        enemyVision: parseFloat(pings.enemyVision || 0),
-        getBack: parseFloat(pings.getBack || 0),
-        needVision: parseFloat(pings.needVision || 0),
-        onMyWay: parseFloat(pings.onMyWay || 0),
-        push: parseFloat(pings.push || 0),
-        visionCleared: parseFloat(pings.visionCleared || 0),
-        total: parseFloat(pings.total || 0),
+        avg: {
+            allIn: parseFloat(pings.allIn || 0),
+            assistMe: parseFloat(pings.assistMe || 0),
+            basic: parseFloat(pings.basic || 0),
+            danger: parseFloat(pings.danger || 0),
+            enemyMissing: parseFloat(pings.enemyMissing || 0),
+            enemyVision: parseFloat(pings.enemyVision || 0),
+            getBack: parseFloat(pings.getBack || 0),
+            needVision: parseFloat(pings.needVision || 0),
+            onMyWay: parseFloat(pings.onMyWay || 0),
+            push: parseFloat(pings.push || 0),
+            visionCleared: parseFloat(pings.visionCleared || 0),
+            total: parseFloat(pings.total || 0),
+        },
+        raw: {
+            allIn: raw.allIn || 0,
+            assistMe: raw.assistMe || 0,
+            basic: raw.basic || 0,
+            danger: raw.danger || 0,
+            enemyMissing: raw.enemyMissing || 0,
+            enemyVision: raw.enemyVision || 0,
+            getBack: raw.getBack || 0,
+            needVision: raw.needVision || 0,
+            onMyWay: raw.onMyWay || 0,
+            push: raw.push || 0,
+            visionCleared: raw.visionCleared || 0,
+            total: raw.total || 0,
+        },
     });
 }
 

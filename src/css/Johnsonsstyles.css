@@ -65,7 +65,10 @@ td {
   display: inline-block;
   object-fit: cover;
   cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, outline 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    outline 0.15s ease;
 }
 
 .champ-highlighted {
@@ -113,7 +116,7 @@ tbody th .role-header-content {
 }
 
 #leaderboard {
-  width: 70%;
+  width: 85%;
   margin-top: 10px;
   margin-bottom: 30px;
 }
@@ -137,6 +140,26 @@ tbody th .role-header-content {
   align-items: center;
   margin-bottom: 10px;
   font-size: 11px;
+}
+
+#pings-leaderboard {
+  width: 70%;
+  margin-top: 10px;
+  margin-bottom: 30px;
+}
+
+#pings-leaderboard thead th {
+  background-color: #e9ecef;
+  cursor: pointer;
+  user-select: none;
+  text-align: center;
+  padding: 6px 4px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+#pings-leaderboard thead th:hover {
+  background-color: #dfe3e6;
 }
 
 .sort-arrow {

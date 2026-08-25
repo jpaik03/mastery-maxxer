@@ -264,36 +264,65 @@ app.get("/api/player-flex-stats", async (req, res) => {
                     regionalClient.get(`/lol/match/v5/matches/${matchId}`),
                 );
                 const match = matchRes.data;
-                const participant = match.info.participants.find(
+                const participant = match?.info?.participants?.find(
                     (p) => p.puuid === puuid,
                 );
 
                 if (participant) {
                     const isRemake =
-                        participant.gameEndedInEarlySurrender ||
-                        match.info.gameDuration < 300;
+                        participant.gameEndedInEarlySurrender === true ||
+                        (match.info.gameDuration &&
+                            match.info.gameDuration < 300);
 
                     if (!isRemake) {
-                        await supabase.from("player_matches").upsert(
-                            {
-                                match_id: matchId,
-                                puuid: puuid,
-                                queue_id: match.info.queueId,
-                                game_creation: match.info.gameCreation,
-                                champion_id: participant.championId,
-                                champion_name: participant.championName,
-                                team_position:
-                                    participant.individualPosition ||
-                                    participant.teamPosition,
-                                win: participant.win,
-                                quadra_kills: participant.quadraKills || 0,
-                                penta_kills: participant.pentaKills || 0,
-                                team_id: participant.teamId,
-                            },
-                            { onConflict: "match_id, puuid" },
-                        );
+                        const pingData = {
+                            allIn: participant.allInPings || 0,
+                            assistMe: participant.assistMePings || 0,
+                            basic: participant.basicPings || 0,
+                            command: participant.commandPings || 0,
+                            danger: participant.dangerPings || 0,
+                            enemyMissing: participant.enemyMissingPings || 0,
+                            enemyVision: participant.enemyVisionPings || 0,
+                            getBack: participant.getBackPings || 0,
+                            hold: participant.holdPings || 0,
+                            needVision: participant.needVisionPings || 0,
+                            onMyWay: participant.onMyWayPings || 0,
+                            push: participant.pushPings || 0,
+                            visionCleared: participant.visionClearedPings || 0,
+                        };
+
+                        const { error: matchInsertError } = await supabase
+                            .from("player_matches")
+                            .upsert(
+                                {
+                                    match_id: matchId,
+                                    puuid: puuid,
+                                    queue_id: match.info.queueId,
+                                    game_creation: match.info.gameCreation,
+                                    champion_id: participant.championId,
+                                    champion_name: participant.championName,
+                                    team_position:
+                                        participant.individualPosition ||
+                                        participant.teamPosition ||
+                                        "UNKNOWN",
+                                    win: Boolean(participant.win),
+                                    quadra_kills: participant.quadraKills || 0,
+                                    penta_kills: participant.pentaKills || 0,
+                                    team_id: participant.teamId,
+                                    pings: pingData,
+                                },
+                                { onConflict: "match_id, puuid" },
+                            );
+
+                        if (matchInsertError) {
+                            console.error(
+                                `Failed to insert match ${matchId} for ${puuid}:`,
+                                matchInsertError,
+                            );
+                        }
                     }
                 }
+
                 // Pace requests (100 calls per 2 minutes)
                 await new Promise((resolve) => setTimeout(resolve, 1200));
             }
@@ -310,7 +339,7 @@ app.get("/api/player-flex-stats", async (req, res) => {
         // Aggregate stored stats from database
         const { data: flexMatches } = await supabase
             .from("player_matches")
-            .select("team_position, win")
+            .select("team_position, win, pings")
             .eq("puuid", puuid)
             .eq("queue_id", 440)
             .gte("game_creation", SEASON_2026_START * 1000);
@@ -323,6 +352,23 @@ app.get("/api/player-flex-stats", async (req, res) => {
             UTILITY: { wins: 0, total: 0 },
         };
 
+        const pingTotals = {
+            allIn: 0,
+            assistMe: 0,
+            basic: 0,
+            command: 0,
+            danger: 0,
+            enemyMissing: 0,
+            enemyVision: 0,
+            getBack: 0,
+            hold: 0,
+            needVision: 0,
+            onMyWay: 0,
+            push: 0,
+            visionCleared: 0,
+            total: 0,
+        };
+
         let totalWins = 0;
         (flexMatches || []).forEach((m) => {
             const pos = m.team_position?.toUpperCase();
@@ -333,7 +379,73 @@ app.get("/api/player-flex-stats", async (req, res) => {
                     totalWins++;
                 }
             }
+
+            const p = m.pings || {};
+            const allIn = p.allIn || 0;
+            const assistMe = p.assistMe || 0;
+            const basic = p.basic || 0;
+            const command = p.command || 0;
+            const danger = p.danger || 0;
+            const enemyMissing = p.enemyMissing || 0;
+            const enemyVision = p.enemyVision || 0;
+            const getBack = p.getBack || 0;
+            const hold = p.hold || 0;
+            const needVision = p.needVision || 0;
+            const onMyWay = p.onMyWay || 0;
+            const push = p.push || 0;
+            const visionCleared = p.visionCleared || 0;
+
+            const matchTotal =
+                allIn +
+                assistMe +
+                basic +
+                command +
+                danger +
+                enemyMissing +
+                enemyVision +
+                getBack +
+                hold +
+                needVision +
+                onMyWay +
+                push +
+                visionCleared;
+
+            pingTotals.allIn += allIn;
+            pingTotals.assistMe += assistMe;
+            pingTotals.basic += basic;
+            pingTotals.command += command;
+            pingTotals.danger += danger;
+            pingTotals.enemyMissing += enemyMissing;
+            pingTotals.enemyVision += enemyVision;
+            pingTotals.getBack += getBack;
+            pingTotals.hold += hold;
+            pingTotals.needVision += needVision;
+            pingTotals.onMyWay += onMyWay;
+            pingTotals.push += push;
+            pingTotals.visionCleared += visionCleared;
+            pingTotals.total += matchTotal;
         });
+
+        const totalGamesCount = flexMatches?.length || 0;
+        const avg = (val) =>
+            totalGamesCount > 0 ? (val / totalGamesCount).toFixed(1) : "0.0";
+
+        const pingsAvg = {
+            allIn: avg(pingTotals.allIn),
+            assistMe: avg(pingTotals.assistMe),
+            basic: avg(pingTotals.basic),
+            command: avg(pingTotals.command),
+            danger: avg(pingTotals.danger),
+            enemyMissing: avg(pingTotals.enemyMissing),
+            enemyVision: avg(pingTotals.enemyVision),
+            getBack: avg(pingTotals.getBack),
+            hold: avg(pingTotals.hold),
+            needVision: avg(pingTotals.needVision),
+            onMyWay: avg(pingTotals.onMyWay),
+            push: avg(pingTotals.push),
+            visionCleared: avg(pingTotals.visionCleared),
+            total: avg(pingTotals.total),
+        };
 
         const formatWR = (w, t) =>
             t > 0 ? `${t} (${((w / t) * 100).toFixed(1)}%)` : "0";
@@ -344,7 +456,8 @@ app.get("/api/player-flex-stats", async (req, res) => {
             MID: formatWR(roles.MIDDLE.wins, roles.MIDDLE.total),
             BOT: formatWR(roles.BOTTOM.wins, roles.BOTTOM.total),
             SUP: formatWR(roles.UTILITY.wins, roles.UTILITY.total),
-            TOTAL: formatWR(totalWins, flexMatches?.length || 0),
+            TOTAL: formatWR(totalWins, totalGamesCount),
+            pings: pingsAvg,
         });
     } catch (error) {
         handleApiError(res, error, "Failed to aggregate Flex stats");

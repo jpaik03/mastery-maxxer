@@ -300,6 +300,79 @@ function setupLeaderboardSorting() {
     }
 }
 
+let pingsLeaderboardData = [];
+let currentPingSortKey = "total";
+let currentPingSortAsc = false;
+
+function renderPingsLeaderboard() {
+    const tbody = document.getElementById("pings-leaderboard-body");
+    if (!tbody) return;
+
+    pingsLeaderboardData.sort((a, b) => {
+        let valA = a[currentPingSortKey];
+        let valB = b[currentPingSortKey];
+
+        if (typeof valA === "string" && currentPingSortKey === "name") {
+            return currentPingSortAsc
+                ? valA.localeCompare(valB)
+                : valB.localeCompare(valA);
+        }
+        return currentPingSortAsc ? valA - valB : valB - valA;
+    });
+
+    tbody.innerHTML = pingsLeaderboardData
+        .map(
+            (p) => `
+        <tr>
+            <td><strong>${p.name}</strong></td>
+            <td>${p.allIn.toFixed(1)}</td>
+            <td>${p.assistMe.toFixed(1)}</td>
+            <td>${p.basic.toFixed(1)}</td>
+            <td>${p.command.toFixed(1)}</td>
+            <td>${p.danger.toFixed(1)}</td>
+            <td>${p.enemyMissing.toFixed(1)}</td>
+            <td>${p.enemyVision.toFixed(1)}</td>
+            <td>${p.getBack.toFixed(1)}</td>
+            <td>${p.hold.toFixed(1)}</td>
+            <td>${p.needVision.toFixed(1)}</td>
+            <td>${p.onMyWay.toFixed(1)}</td>
+            <td>${p.push.toFixed(1)}</td>
+            <td>${p.visionCleared.toFixed(1)}</td>
+            <td><strong>${p.total.toFixed(1)}</strong></td>
+        </tr>
+    `,
+        )
+        .join("");
+
+    document
+        .querySelectorAll("#pings-leaderboard th[data-sort]")
+        .forEach((th) => {
+            const arrow = th.querySelector(".sort-arrow");
+            if (th.getAttribute("data-sort") === currentPingSortKey) {
+                arrow.textContent = currentPingSortAsc ? " ▲" : " ▼";
+            } else {
+                arrow.textContent = "";
+            }
+        });
+}
+
+function setupPingsLeaderboardSorting() {
+    document
+        .querySelectorAll("#pings-leaderboard th[data-sort]")
+        .forEach((th) => {
+            th.addEventListener("click", () => {
+                const sortKey = th.getAttribute("data-sort");
+                if (currentPingSortKey === sortKey) {
+                    currentPingSortAsc = !currentPingSortAsc;
+                } else {
+                    currentPingSortKey = sortKey;
+                    currentPingSortAsc = false;
+                }
+                renderPingsLeaderboard();
+            });
+        });
+}
+
 async function fetchPlayerProfile(player) {
     const account = await fetchRiotAccountByPuuid(player.puuid);
     if (!account.puuid)
@@ -455,6 +528,26 @@ async function fetchPlayerProfile(player) {
         totalGames: parseGamesCount(flexStats.TOTAL),
         totalText: flexStats.TOTAL || "0",
     });
+
+    // Pings
+    const pings = flexStats.pings || {};
+    pingsLeaderboardData.push({
+        name: player.name,
+        allIn: parseFloat(pings.allIn || 0),
+        assistMe: parseFloat(pings.assistMe || 0),
+        basic: parseFloat(pings.basic || 0),
+        command: parseFloat(pings.command || 0),
+        danger: parseFloat(pings.danger || 0),
+        enemyMissing: parseFloat(pings.enemyMissing || 0),
+        enemyVision: parseFloat(pings.enemyVision || 0),
+        getBack: parseFloat(pings.getBack || 0),
+        hold: parseFloat(pings.hold || 0),
+        needVision: parseFloat(pings.needVision || 0),
+        onMyWay: parseFloat(pings.onMyWay || 0),
+        push: parseFloat(pings.push || 0),
+        visionCleared: parseFloat(pings.visionCleared || 0),
+        total: parseFloat(pings.total || 0),
+    });
 }
 
 async function loadAllProfiles() {
@@ -491,6 +584,7 @@ async function loadAllProfiles() {
     });
 
     leaderboardData = [];
+    pingsLeaderboardData = [];
 
     try {
         await initChampionData();
@@ -500,6 +594,7 @@ async function loadAllProfiles() {
             statusMsg.innerText = `Loading (${i + 1}/${PLAYERS.length}): ${p.name}...`;
             await fetchPlayerProfile(p);
             renderLeaderboard();
+            renderPingsLeaderboard();
         }
         statusMsg.innerText = "";
     } catch (err) {
@@ -513,6 +608,7 @@ document.addEventListener("DOMContentLoaded", () => {
         .getElementById("load-all-btn")
         .addEventListener("click", loadAllProfiles);
     setupLeaderboardSorting();
+    setupPingsLeaderboardSorting();
     setupChampIconHighlighting();
     loadAllProfiles();
 });

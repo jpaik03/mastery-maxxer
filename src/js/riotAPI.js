@@ -146,3 +146,37 @@ export async function fetchFlexStats(puuid, name, gameName, tagLine) {
     const res = await fetch(`/api/player-flex-stats?${params.toString()}`);
     return await res.json();
 }
+
+export async function syncRankedQueues() {
+    const response = await fetch(
+        "/api/sync-roster-ranked",
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({}),
+        },
+    );
+
+    const result = await response.json();
+
+    if (!response.ok) {
+        throw new Error(
+            result.error ||
+                "Failed to synchronize ranked queues",
+        );
+    }
+
+    return result;
+}
+
+export async function fetchRankedFivesStats(puuid) {
+    const response = await fetch(
+        `/api/player-ranked-fives-stats?puuid=${encodeURIComponent(
+            puuid,
+        )}`,
+    );
+
+    return await response.json();
+}

@@ -18,6 +18,8 @@ import {
     fetchRankedData,
     fetchMasteryData,
     fetchFlexStats,
+    fetchRankedFivesStats,
+    syncRankedQueues,
     syncAndFetchPlayerPeaks,
 } from "./riotAPI.js";
 import { getChampMap, getChampIconUrl } from "./champData.js";
@@ -115,7 +117,6 @@ const PROFILE_TABLE_ROW_IDS = [
     "row-player",
     "row-level",
     "row-solo",
-    "row-fives",
     "row-top5",
     "row-champs",
     "row-points",
@@ -130,6 +131,14 @@ const PROFILE_TABLE_ROW_IDS = [
     "row-flex-sup",
     "row-flex-total",
     "row-peak-flex",
+    "row-fives-name",
+    "row-fives-rank",
+    "row-fives-top",
+    "row-fives-jgl",
+    "row-fives-mid",
+    "row-fives-bot",
+    "row-fives-sup",
+    "row-fives-total",
 ];
 
 /* STATE MANAGEMENT */
@@ -445,6 +454,7 @@ function appendProfileTableColumns(profileData) {
         flexText,
         flexStats,
         flexPeak,
+        rankedFivesStats,
     } = profileData;
 
     // Profile Summary Table
@@ -463,9 +473,6 @@ function appendProfileTableColumns(profileData) {
     document
         .getElementById("row-solo")
         .insertAdjacentHTML("beforeend", `<td>${soloText}</td>`);
-    document
-        .getElementById("row-fives")
-        .insertAdjacentHTML("beforeend", `<td>${fivesText}</td>`);
     document
         .getElementById("row-top5")
         .insertAdjacentHTML("beforeend", `<td>${top5Text}</td>`);
@@ -510,6 +517,39 @@ function appendProfileTableColumns(profileData) {
     document
         .getElementById("row-peak-flex")
         .insertAdjacentHTML("beforeend", `<td>${flexPeak.rankText}</td>`);
+
+        // S26 Ranked 5v5 Table
+    document
+        .getElementById("row-fives-name")
+        .insertAdjacentHTML("beforeend", `<td><strong>${name}</strong></td>`,);
+
+    document
+        .getElementById("row-fives-rank")
+        .insertAdjacentHTML("beforeend", `<td>${fivesText}</td>`,);
+
+    document
+        .getElementById("row-fives-top")
+        .insertAdjacentHTML("beforeend", `<td>${rankedFivesStats.TOP || "0"}</td>`,);
+
+    document
+        .getElementById("row-fives-jgl")
+        .insertAdjacentHTML("beforeend", `<td>${rankedFivesStats.JGL || "0"}</td>`,);
+
+    document
+        .getElementById("row-fives-mid")
+        .insertAdjacentHTML("beforeend", `<td>${rankedFivesStats.MID || "0"}</td>`,);
+
+    document
+        .getElementById("row-fives-bot")
+        .insertAdjacentHTML("beforeend", `<td>${rankedFivesStats.BOT || "0"}</td>`,);
+
+    document
+        .getElementById("row-fives-sup")
+        .insertAdjacentHTML("beforeend", `<td>${rankedFivesStats.SUP || "0"}</td>`,);
+
+    document
+        .getElementById("row-fives-total")
+        .insertAdjacentHTML("beforeend", `<td>${rankedFivesStats.TOTAL || "0"}</td>`,);
 }
 
 // Update sorting arrow indicators on table header elements
@@ -693,7 +733,13 @@ async function fetchPlayerProfile(player) {
         throw new Error(`Could not find profile for ${player.name}`);
     }
 
-    const [summoner, ranked, masteries, flexStats] = await Promise.all([
+    const [
+        summoner,
+        ranked,
+        masteries,
+        flexStats,
+        rankedFivesStats,
+    ] = await Promise.all([
         fetchSummonerData(player.puuid),
         fetchRankedData(player.puuid),
         fetchMasteryData(player.puuid),
@@ -703,6 +749,7 @@ async function fetchPlayerProfile(player) {
             account.gameName,
             account.tagLine,
         ),
+        fetchRankedFivesStats(player.puuid),
     ]);
 
     const { solo, flex, fives } = extractQueueEntries(ranked);
@@ -725,6 +772,7 @@ async function fetchPlayerProfile(player) {
         flexText: formatRank(flex),
         flexStats,
         flexPeak: formatPeakDisplay(peakData.peakFlex),
+        rankedFivesStats,
     });
 
     // Accumulate leaderboard datasets
@@ -745,26 +793,41 @@ async function fetchPlayerProfile(player) {
 
 // Clear tables, fetch metadata, and sequentially load all player profiles
 async function loadAllProfiles() {
-    const statusMsg = document.getElementById("status-msg");
+    const statusMsg =
+        document.getElementById("status-msg");
+
     clearProfileTables();
 
     leaderboardData = [];
     pingsLeaderboardData = [];
 
     try {
+        statusMsg.innerText =
+            "Checking for new Flex and Ranked 5v5 matches...";
+
+        await syncRankedQueues();
         await initChampionData();
 
-        for (let i = 0; i < PLAYERS.length; i++) {
-            const p = PLAYERS[i];
-            statusMsg.innerText = `Loading (${i + 1}/${PLAYERS.length}): ${p.name}...`;
-            await fetchPlayerProfile(p);
+        for (
+            let i = 0;
+            i < PLAYERS.length;
+            i++
+        ) {
+            const player = PLAYERS[i];
+
+            statusMsg.innerText =
+                `Loading (${i + 1}/${PLAYERS.length}): ${player.name}...`;
+
+            await fetchPlayerProfile(player);
             renderLeaderboard();
             renderPingsLeaderboard();
         }
+
         statusMsg.innerText = "";
-    } catch (err) {
-        console.error(err);
-        statusMsg.innerText = `Error: ${err.message}`;
+    } catch (error) {
+        console.error(error);
+        statusMsg.innerText =
+            `Error: ${error.message}`;
     }
 }
 

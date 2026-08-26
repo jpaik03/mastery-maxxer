@@ -255,6 +255,7 @@ function formatPlayerMatchRecord(matchId, puuid, match, participant) {
         penta_kills: participant.pentaKills || 0,
         team_id: participant.teamId,
         pings: extractPingData(participant),
+        raw_participant: participant
     };
 }
 

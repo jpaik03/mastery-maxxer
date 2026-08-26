@@ -255,7 +255,7 @@ function formatPlayerMatchRecord(matchId, puuid, match, participant) {
         penta_kills: participant.pentaKills || 0,
         team_id: participant.teamId,
         pings: extractPingData(participant),
-        raw_participant: participant
+        raw_participant: participant,
     };
 }
 
@@ -307,7 +307,10 @@ async function ingestPlayerMatches(puuid, matchIds) {
         if (participant) {
             const isRemake =
                 participant.gameEndedInEarlySurrender ||
-                match.info.gameDuration < 300;
+                match.info?.gameEndedInEarlySurrender ||
+                match.info?.endOfGameResult === "Abort_AntiCheatExit" ||
+                match.info?.endOfGameResult === "Abort_Unexpected" ||
+                (match.info?.gameDuration || 0) < 300;
 
             if (!isRemake) {
                 const record = formatPlayerMatchRecord(
@@ -322,8 +325,7 @@ async function ingestPlayerMatches(puuid, matchIds) {
             }
         }
 
-        // Pace requests (100 calls per 2 minutes)
-        await new Promise((resolve) => setTimeout(resolve, 1200));
+        await new Promise((resolve) => setTimeout(resolve, 50));
     }
 }
 

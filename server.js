@@ -46,8 +46,22 @@ const supabase = createClient(
     process.env.SUPABASE_KEY,
 );
 
-// Season 2026 start timestamp (Jan 8, 2026 00:00:00 UTC in seconds)
-const SEASON_2026_START = 1767830400;
+// Official Season 2026 Ranked Split start timestamp (Jan 8, 2026 12:00:00 UTC in seconds)
+const SEASON_2026_START = 1767873600;
+
+// Tracked roster PUUIDs for cross-participant ingestion
+const TRACKED_PUUIDS = new Set([
+    "wUX2hh9YBwf66OZjsn6SauURG6dyrYsBklTqHvMv6f-EMlcKH87g_lds17PEVnbEd26gsJOwQQB1kg",
+    "VTe2huNS57BFU3WuCefKyC_cqGjkExvB4enPSS4R5YXKXru5jFCdMPz_3HtirYPs8AqFjnalrQO95w",
+    "G6MhoNnrm8HYJ87lfJTEIoggCPb2_3Mr68Eh2OJGJeio972UwKnbzkDZUDxHcQZOoJz5rJbtWUMRlQ",
+    "81RQTX37Hxdj7i9V4UTljdySmsyj82OuiExAEOze3XohGnyUGR9etyTnjLohw87p9U-QjxMmONbEcg",
+    "fSOoEFLuNqQlp7gY8RFUTQ2LnJpV3LcnapcRp1RDtn_CrLbaTM2bPsCzcic74Kk_QfeDjfwKHVtVsg",
+    "TV09seitjrdYEiKToxrCA7rh_GN_wir_j_yZ3fmRS4Al1zpERQ6pvHzIy5dqqdDsRGyuk4DfoIDpsg",
+    "6cwqYAckOFIdB4qJoFEvKohj9zIG_HveDYMSaOJx4oNndYnbygmKvbZSbMfrPww6xYbTYUrFNy4zkQ",
+    "9pLcWyTNsCHIA6GtYarC4ZKV02JDXyWPGY8fTzQKQ06oqgAMJ17_C2CAGrM5HvGiWBFqiH5U1GYyqg",
+    "5-1YXAqBrJ9JtM311w5RQRBDwyr0AWf2k-m9OouPheTZNuAPbB6MsKN-EncpjlWm2G98mX-WDdrOBA",
+    "S3-ROibvQqYney-A0xvuYXH4J8mO1_-ZWU0I20ZKNw452ioyJlrg5ZLrcf2tNWLPFAkQsPsvIMbRUw",
+]);
 
 // Configure Express to parse JSON and serve static assets
 app.use(express.json());
@@ -187,11 +201,11 @@ app.get("/api/a-champion-mastery", async (req, res) => {
 
 // Get match history IDs by PUUID
 app.get("/api/match-history", async (req, res) => {
-    const { puuid, count = 20, queue } = req.query;
+    const { puuid, count = 20, queue, start = 0 } = req.query;
     if (!puuid) return res.status(400).json({ error: "PUUID required" });
 
     try {
-        const params = { start: 0, count };
+        const params = { start: Number(start), count: Number(count) };
         if (queue) params.queue = queue;
 
         const response = await regionalClient.get(
@@ -287,35 +301,43 @@ async function fetchFlexMatchIds(puuid, startTime) {
 // Ingest match details into Supabase if not already present
 async function ingestPlayerMatches(puuid, matchIds) {
     for (const matchId of matchIds) {
-        const { data: exists } = await supabase
+        const query = supabase
             .from("player_matches")
             .select("id")
-            .eq("match_id", matchId)
-            .eq("puuid", puuid)
-            .maybeSingle();
+            .eq("match_id", matchId);
 
+        if (puuid) query.eq("puuid", puuid);
+
+        const { data: exists } = await query.maybeSingle();
         if (exists) continue;
 
         const matchRes = await fetchWithRetry(() =>
             regionalClient.get(`/lol/match/v5/matches/${matchId}`),
         );
         const match = matchRes.data;
-        const participant = match?.info?.participants?.find(
-            (p) => p.puuid === puuid,
+        const participants = match?.info?.participants || [];
+
+        const rosterParticipants = participants.filter((p) =>
+            TRACKED_PUUIDS.has(p.puuid),
         );
 
-        if (participant) {
+        const durationInSeconds =
+            (match.info?.gameDuration || 0) > 10000
+                ? Math.floor(match.info.gameDuration / 1000)
+                : match.info?.gameDuration || 0;
+
+        for (const participant of rosterParticipants) {
             const isRemake =
                 participant.gameEndedInEarlySurrender ||
-                match.info?.gameEndedInEarlySurrender ||
-                match.info?.endOfGameResult === "Abort_AntiCheatExit" ||
-                match.info?.endOfGameResult === "Abort_Unexpected" ||
-                (match.info?.gameDuration || 0) < 300;
+                participant.teamEarlySurrendered ||
+                (match.info?.endOfGameResult &&
+                    match.info.endOfGameResult !== "GameComplete") ||
+                durationInSeconds < 300;
 
             if (!isRemake) {
                 const record = formatPlayerMatchRecord(
                     matchId,
-                    puuid,
+                    participant.puuid,
                     match,
                     participant,
                 );
@@ -505,7 +527,7 @@ function evaluatePeakEntry(liveEntry, storedPeak, queuePrefix, currentYear) {
 
 /* COMPLEX / DATABASE ROUTES */
 
-// Sync & Fetch Flex Role Breakdown for a player
+// Sync & Fetch Flex Role Breakdown for a single player
 app.get("/api/player-flex-stats", async (req, res) => {
     const { puuid, name, gameName, tagLine } = req.query;
     if (!puuid) return res.status(400).json({ error: "PUUID required" });
@@ -559,6 +581,75 @@ app.get("/api/player-flex-stats", async (req, res) => {
         });
     } catch (error) {
         handleApiError(res, error, "Failed to aggregate Flex stats");
+    }
+});
+
+// Bulk sync entire roster in 2 phases
+app.post("/api/sync-roster-flex", async (req, res) => {
+    const { players } = req.body;
+    if (!players || !Array.isArray(players)) {
+        return res.status(400).json({ error: "Players array required" });
+    }
+
+    try {
+        const uniqueMatchIds = new Set();
+
+        // Phase 1: Register players and collect deduplicated match IDs across roster
+        for (const player of players) {
+            await supabase.from("players").upsert(
+                {
+                    puuid: player.puuid,
+                    name: player.name || "Unknown",
+                    game_name: player.gameName || "Unknown",
+                    tag_line: player.tagLine || "Unknown",
+                },
+                { onConflict: "puuid" },
+            );
+
+            const { data: playerData } = await supabase
+                .from("players")
+                .select("last_synced_at")
+                .eq("puuid", player.puuid)
+                .maybeSingle();
+
+            const startTime = playerData?.last_synced_at
+                ? Math.floor(playerData.last_synced_at / 1000)
+                : SEASON_2026_START;
+
+            const playerMatchIds = await fetchFlexMatchIds(
+                player.puuid,
+                startTime,
+            );
+            playerMatchIds.forEach((id) => uniqueMatchIds.add(id));
+        }
+
+        // Phase 2: Ingest unique matches and cross-populate all roster participants
+        await ingestPlayerMatches(null, Array.from(uniqueMatchIds));
+
+        const now = Date.now();
+        for (const player of players) {
+            await supabase
+                .from("players")
+                .update({ last_synced_at: now })
+                .eq("puuid", player.puuid);
+        }
+
+        // Phase 3: Query Supabase once for all players simultaneously
+        const results = {};
+        for (const player of players) {
+            const { data: flexMatches } = await supabase
+                .from("player_matches")
+                .select("team_position, win, pings")
+                .eq("puuid", player.puuid)
+                .eq("queue_id", 440)
+                .gte("game_creation", SEASON_2026_START * 1000);
+
+            results[player.puuid] = computeFlexAggregations(flexMatches);
+        }
+
+        res.json({ success: true, stats: results });
+    } catch (error) {
+        handleApiError(res, error, "Failed to bulk sync roster");
     }
 });
 

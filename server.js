@@ -1,15 +1,34 @@
+/*
+ *  server.js
+ *  Justin Paik
+ *  Created: 16 March 2025
+ *  Last Updated: 26 August 2026
+ *  Express server and Riot API proxy endpoints
+ *
+ *  This module initializes the Express web server, configures the Riot API and
+ *  Supabase clients, and exposes API endpoints.
+ */
+
+/* SET UP DEPENDENCIES */
+
+// Load environment variables
 require("dotenv").config();
+
+// Module imports
 const express = require("express");
 const axios = require("axios");
 const path = require("path");
 
+// Server configuration and instantiation
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Riot API configuration
 const API_KEY = process.env.API_KEY;
 const REGION = process.env.REGION || "americas";
 const PLATFORM = process.env.PLATFORM || "na1";
 
+// Axios clients for Riot API endpoints
 const regionalClient = axios.create({
     baseURL: `https://${REGION}.api.riotgames.com`,
     headers: { "X-Riot-Token": API_KEY },
@@ -20,7 +39,15 @@ const platformClient = axios.create({
     headers: { "X-Riot-Token": API_KEY },
 });
 
-// Error handler helper
+// Configure Express to parse JSON and serve static assets
+app.use(express.json());
+app.use(express.static(path.join(__dirname, "public")));
+app.use("/js", express.static(path.join(__dirname, "src/js")));
+app.use("/css", express.static(path.join(__dirname, "src/css")));
+
+/* RIOT API ROUTES */
+
+// API error handler helper
 const handleApiError = (res, error, defaultMsg) => {
     const status = error.response?.status || 500;
     const message = error.response?.data?.status?.message || defaultMsg;
@@ -28,14 +55,7 @@ const handleApiError = (res, error, defaultMsg) => {
     return res.status(status).json({ error: message });
 };
 
-app.use(express.json());
-app.use(express.static(path.join(__dirname, "public")));
-app.use("/js", express.static(path.join(__dirname, "src/js")));
-app.use("/css", express.static(path.join(__dirname, "src/css")));
-
-// API ROUTES
-
-// Get Riot Account info by PUUID
+// Get Riot account info by PUUID
 app.get("/api/account-by-puuid", async (req, res) => {
     const { puuid } = req.query;
     if (!puuid) return res.status(400).json({ error: "PUUID required" });
@@ -50,7 +70,7 @@ app.get("/api/account-by-puuid", async (req, res) => {
     }
 });
 
-// Get PUUID by Riot ID (gameName + tagLine)
+// Get Riot account info by Riot ID (gameName + tagLine)
 app.get("/api/account-by-riot-id", async (req, res) => {
     const { gameName, tagLine } = req.query;
     if (!gameName || !tagLine) {
@@ -67,7 +87,7 @@ app.get("/api/account-by-riot-id", async (req, res) => {
     }
 });
 
-// Get summoner info (Level, icon, summonerId)
+// Get summoner info (level, icon, summonerId) by PUUID
 app.get("/api/summoner-by-puuid", async (req, res) => {
     const { puuid } = req.query;
     if (!puuid) return res.status(400).json({ error: "PUUID required" });
@@ -82,7 +102,7 @@ app.get("/api/summoner-by-puuid", async (req, res) => {
     }
 });
 
-// Get ranked stats (Solo/Duo, Flex)
+// Get ranked stats (Solo/Duo, Flex) by PUUID
 app.get("/api/ranked-by-puuid", async (req, res) => {
     const { puuid } = req.query;
     if (!puuid) return res.status(400).json({ error: "PUUID required" });
@@ -97,7 +117,7 @@ app.get("/api/ranked-by-puuid", async (req, res) => {
     }
 });
 
-// Get all or top champion masteries
+// Get all or top champion masteries by PUUID
 app.get("/api/champion-mastery", async (req, res) => {
     const { puuid, count } = req.query;
     if (!puuid) return res.status(400).json({ error: "PUUID required" });
@@ -114,7 +134,7 @@ app.get("/api/champion-mastery", async (req, res) => {
     }
 });
 
-// Get a specific champion's mastery
+// Get a specific champion's mastery by PUUID and championId
 app.get("/api/a-champion-mastery", async (req, res) => {
     const { puuid, championId } = req.query;
     if (!puuid || !championId) {
@@ -131,7 +151,7 @@ app.get("/api/a-champion-mastery", async (req, res) => {
     }
 });
 
-// Get match history IDs
+// Get match history IDs by PUUID
 app.get("/api/match-history", async (req, res) => {
     const { puuid, count = 20, queue } = req.query;
     if (!puuid) return res.status(400).json({ error: "PUUID required" });
@@ -150,7 +170,7 @@ app.get("/api/match-history", async (req, res) => {
     }
 });
 
-// Get specific match details
+// Get specific match details by matchId
 app.get("/api/match-info", async (req, res) => {
     const { matchId } = req.query;
     if (!matchId) return res.status(400).json({ error: "Match ID required" });

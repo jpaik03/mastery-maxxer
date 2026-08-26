@@ -18,6 +18,7 @@ require("dotenv").config();
 const express = require("express");
 const axios = require("axios");
 const path = require("path");
+const { createClient } = require("@supabase/supabase-js");
 
 // Server configuration and instantiation
 const app = express();
@@ -39,13 +40,22 @@ const platformClient = axios.create({
     headers: { "X-Riot-Token": API_KEY },
 });
 
+// Supabase client configuration
+const supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_KEY,
+);
+
+// Season 2026 start timestamp (Jan 8, 2026 00:00:00 UTC in seconds)
+const SEASON_2026_START = 1767830400;
+
 // Configure Express to parse JSON and serve static assets
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 app.use("/js", express.static(path.join(__dirname, "src/js")));
 app.use("/css", express.static(path.join(__dirname, "src/css")));
 
-/* RIOT API ROUTES */
+/* GENERAL HELPER FUNCTIONS */
 
 // API error handler helper
 const handleApiError = (res, error, defaultMsg) => {
@@ -54,6 +64,30 @@ const handleApiError = (res, error, defaultMsg) => {
     console.error(`API Error [${status}]:`, error.message);
     return res.status(status).json({ error: message });
 };
+
+// Execute an API request function and automatically retry if rate-limited (HTTP 429)
+async function fetchWithRetry(requestFn) {
+    try {
+        return await requestFn();
+    } catch (error) {
+        if (error.response && error.response.status === 429) {
+            const retryAfter = parseInt(
+                error.response.headers["retry-after"] || "5",
+                10,
+            );
+            console.log(
+                `Rate limit reached. Waiting ${retryAfter}s before retrying...`,
+            );
+            await new Promise((res) =>
+                setTimeout(res, (retryAfter + 1) * 1000),
+            );
+            return await fetchWithRetry(requestFn);
+        }
+        throw error;
+    }
+}
+
+/* RIOT API ROUTES */
 
 // Get Riot account info by PUUID
 app.get("/api/account-by-puuid", async (req, res) => {
@@ -185,281 +219,208 @@ app.get("/api/match-info", async (req, res) => {
     }
 });
 
-// SUPABASE LOGIC
+/* FLEX STATS HELPERS */
 
-const { createClient } = require("@supabase/supabase-js");
-
-const supabase = createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_KEY,
-);
-
-// S26 Start (Jan 8, 2026 00:00:00 UTC)
-const SEASON_2026_START = 1767830400;
-
-// Adhere to Riot API rate limit
-async function fetchWithRetry(requestFn) {
-    try {
-        return await requestFn();
-    } catch (error) {
-        if (error.response && error.response.status === 429) {
-            const retryAfter = parseInt(
-                error.response.headers["retry-after"] || "5",
-                10,
-            );
-            console.log(
-                `Rate limit reached. Waiting ${retryAfter}s before retrying...`,
-            );
-            await new Promise((res) =>
-                setTimeout(res, (retryAfter + 1) * 1000),
-            );
-            return await fetchWithRetry(requestFn);
-        }
-        throw error;
-    }
+// Extract ping counts from participant data
+function extractPingData(participant) {
+    return {
+        allIn: participant.allInPings || 0,
+        assistMe: participant.assistMePings || 0,
+        basic: participant.commandPings || 0,
+        danger: participant.dangerPings || 0,
+        enemyMissing: participant.enemyMissingPings || 0,
+        enemyVision: participant.enemyVisionPings || 0,
+        getBack: participant.getBackPings || 0,
+        needVision: participant.needVisionPings || 0,
+        onMyWay: participant.onMyWayPings || 0,
+        push: participant.pushPings || 0,
+    };
 }
 
-// Sync & Fetch Flex Role Breakdown for a player
-app.get("/api/player-flex-stats", async (req, res) => {
-    const { puuid, name, gameName, tagLine } = req.query;
-    if (!puuid) return res.status(400).json({ error: "PUUID required" });
+// Build the match record object for Supabase insertion
+function formatPlayerMatchRecord(matchId, puuid, match, participant) {
+    return {
+        match_id: matchId,
+        puuid: puuid,
+        queue_id: match.info.queueId,
+        game_creation: match.info.gameCreation,
+        champion_id: participant.championId,
+        champion_name: participant.championName,
+        team_position:
+            participant.individualPosition ||
+            participant.teamPosition ||
+            "UNKNOWN",
+        win: Boolean(participant.win),
+        quadra_kills: participant.quadraKills || 0,
+        penta_kills: participant.pentaKills || 0,
+        team_id: participant.teamId,
+        pings: extractPingData(participant),
+    };
+}
 
-    try {
-        // Upsert player record first to satisfy foreign key constraints
-        await supabase.from("players").upsert(
-            {
-                puuid: puuid,
-                name: name || "Unknown",
-                game_name: gameName || "Unknown",
-                tag_line: tagLine || "Unknown",
-            },
-            { onConflict: "puuid" },
+// Fetch all match IDs for a player from Riot API starting from a given timestamp
+async function fetchFlexMatchIds(puuid, startTime) {
+    let matchIds = [];
+    let startIdx = 0;
+
+    while (true) {
+        const response = await fetchWithRetry(() =>
+            regionalClient.get(`/lol/match/v5/matches/by-puuid/${puuid}/ids`, {
+                params: {
+                    queue: 440,
+                    startTime,
+                    start: startIdx,
+                    count: 100,
+                },
+            }),
         );
+        const page = response.data || [];
+        matchIds.push(...page);
+        if (page.length < 100) break;
+        startIdx += 100;
+    }
 
-        // Determine start timestamp for incremental sync
-        const { data: playerData } = await supabase
-            .from("players")
-            .select("last_synced_at")
+    return matchIds;
+}
+
+// Ingest match details into Supabase if not already present
+async function ingestPlayerMatches(puuid, matchIds) {
+    for (const matchId of matchIds) {
+        const { data: exists } = await supabase
+            .from("player_matches")
+            .select("id")
+            .eq("match_id", matchId)
             .eq("puuid", puuid)
             .maybeSingle();
 
-        const startTime = playerData?.last_synced_at
-            ? Math.floor(playerData.last_synced_at / 1000)
-            : SEASON_2026_START;
+        if (exists) continue;
 
-        // Fetch all match IDs across pages
-        let allNewMatchIds = [];
-        let startIdx = 0;
-        while (true) {
-            const matchIdsRes = await fetchWithRetry(() =>
-                regionalClient.get(
-                    `/lol/match/v5/matches/by-puuid/${puuid}/ids`,
-                    {
-                        params: {
-                            queue: 440,
-                            startTime,
-                            start: startIdx,
-                            count: 100,
-                        },
-                    },
-                ),
-            );
-            const page = matchIdsRes.data || [];
-            allNewMatchIds.push(...page);
-            if (page.length < 100) break;
-            startIdx += 100;
-        }
+        const matchRes = await fetchWithRetry(() =>
+            regionalClient.get(`/lol/match/v5/matches/${matchId}`),
+        );
+        const match = matchRes.data;
+        const participant = match?.info?.participants?.find(
+            (p) => p.puuid === puuid,
+        );
 
-        // Ingest match details sequentially with pacing
-        for (const matchId of allNewMatchIds) {
-            const { data: exists } = await supabase
-                .from("player_matches")
-                .select("id")
-                .eq("match_id", matchId)
-                .eq("puuid", puuid)
-                .maybeSingle();
+        if (participant) {
+            const isRemake =
+                participant.gameEndedInEarlySurrender ||
+                match.info.gameDuration < 300;
 
-            if (!exists) {
-                const matchRes = await fetchWithRetry(() =>
-                    regionalClient.get(`/lol/match/v5/matches/${matchId}`),
+            if (!isRemake) {
+                const record = formatPlayerMatchRecord(
+                    matchId,
+                    puuid,
+                    match,
+                    participant,
                 );
-                const match = matchRes.data;
-                const participant = match?.info?.participants?.find(
-                    (p) => p.puuid === puuid,
-                );
-
-                if (participant) {
-                    const isRemake =
-                        participant.gameEndedInEarlySurrender ||
-                        match.info.gameDuration < 300;
-
-                    if (!isRemake) {
-                        const pingData = {
-                            allIn: participant.allInPings || 0,
-                            assistMe: participant.assistMePings || 0,
-                            basic: participant.commandPings || 0,
-                            danger: participant.dangerPings || 0,
-                            enemyMissing: participant.enemyMissingPings || 0,
-                            enemyVision: participant.enemyVisionPings || 0,
-                            getBack: participant.getBackPings || 0,
-                            needVision: participant.needVisionPings || 0,
-                            onMyWay: participant.onMyWayPings || 0,
-                            push: participant.pushPings || 0,
-                        };
-
-                        await supabase.from("player_matches").upsert(
-                            {
-                                match_id: matchId,
-                                puuid: puuid,
-                                queue_id: match.info.queueId,
-                                game_creation: match.info.gameCreation,
-                                champion_id: participant.championId,
-                                champion_name: participant.championName,
-                                team_position:
-                                    participant.individualPosition ||
-                                    participant.teamPosition ||
-                                    "UNKNOWN",
-                                win: Boolean(participant.win),
-                                quadra_kills: participant.quadraKills || 0,
-                                penta_kills: participant.pentaKills || 0,
-                                team_id: participant.teamId,
-                                pings: pingData,
-                            },
-                            { onConflict: "match_id, puuid" },
-                        );
-                    }
-                }
-
-                // Pace requests (100 calls per 2 minutes)
-                await new Promise((resolve) => setTimeout(resolve, 1200));
+                await supabase
+                    .from("player_matches")
+                    .upsert(record, { onConflict: "match_id, puuid" });
             }
         }
 
-        // Update last synced time
-        await supabase
-            .from("players")
-            .update({
-                last_synced_at: Date.now(),
-            })
-            .eq("puuid", puuid);
-
-        // Aggregate stored stats from database
-        const { data: flexMatches } = await supabase
-            .from("player_matches")
-            .select("team_position, win, pings")
-            .eq("puuid", puuid)
-            .eq("queue_id", 440)
-            .gte("game_creation", SEASON_2026_START * 1000);
-
-        const roles = {
-            TOP: { wins: 0, total: 0 },
-            JUNGLE: { wins: 0, total: 0 },
-            MIDDLE: { wins: 0, total: 0 },
-            BOTTOM: { wins: 0, total: 0 },
-            UTILITY: { wins: 0, total: 0 },
-        };
-
-        const pingTotals = {
-            allIn: 0,
-            assistMe: 0,
-            basic: 0,
-            danger: 0,
-            enemyMissing: 0,
-            enemyVision: 0,
-            getBack: 0,
-            needVision: 0,
-            onMyWay: 0,
-            push: 0,
-            total: 0,
-        };
-
-        let totalWins = 0;
-        (flexMatches || []).forEach((m) => {
-            const pos = m.team_position?.toUpperCase();
-            if (roles[pos]) {
-                roles[pos].total++;
-                if (m.win) {
-                    roles[pos].wins++;
-                    totalWins++;
-                }
-            }
-
-            const p = m.pings || {};
-            const allIn = p.allIn || 0;
-            const assistMe = p.assistMe || 0;
-            const basic = p.basic || 0;
-            const danger = p.danger || 0;
-            const enemyMissing = p.enemyMissing || 0;
-            const enemyVision = p.enemyVision || 0;
-            const getBack = p.getBack || 0;
-            const needVision = p.needVision || 0;
-            const onMyWay = p.onMyWay || 0;
-            const push = p.push || 0;
-
-            const matchTotal =
-                allIn +
-                assistMe +
-                basic +
-                danger +
-                enemyMissing +
-                enemyVision +
-                getBack +
-                needVision +
-                onMyWay +
-                push;
-
-            pingTotals.allIn += allIn;
-            pingTotals.assistMe += assistMe;
-            pingTotals.basic += basic;
-            pingTotals.danger += danger;
-            pingTotals.enemyMissing += enemyMissing;
-            pingTotals.enemyVision += enemyVision;
-            pingTotals.getBack += getBack;
-            pingTotals.needVision += needVision;
-            pingTotals.onMyWay += onMyWay;
-            pingTotals.push += push;
-            pingTotals.total += matchTotal;
-        });
-
-        const totalGamesCount = flexMatches?.length || 0;
-        const avg = (val) =>
-            totalGamesCount > 0 ? (val / totalGamesCount).toFixed(1) : "0.0";
-
-        const pingsAvg = {
-            allIn: avg(pingTotals.allIn),
-            assistMe: avg(pingTotals.assistMe),
-            basic: avg(pingTotals.basic),
-            danger: avg(pingTotals.danger),
-            enemyMissing: avg(pingTotals.enemyMissing),
-            enemyVision: avg(pingTotals.enemyVision),
-            getBack: avg(pingTotals.getBack),
-            needVision: avg(pingTotals.needVision),
-            onMyWay: avg(pingTotals.onMyWay),
-            push: avg(pingTotals.push),
-            total: avg(pingTotals.total),
-        };
-
-        const formatWR = (w, t) =>
-            t > 0 ? `${t} (${((w / t) * 100).toFixed(1)}%)` : "0";
-
-        res.json({
-            TOP: formatWR(roles.TOP.wins, roles.TOP.total),
-            JGL: formatWR(roles.JUNGLE.wins, roles.JUNGLE.total),
-            MID: formatWR(roles.MIDDLE.wins, roles.MIDDLE.total),
-            BOT: formatWR(roles.BOTTOM.wins, roles.BOTTOM.total),
-            SUP: formatWR(roles.UTILITY.wins, roles.UTILITY.total),
-            TOTAL: formatWR(totalWins, totalGamesCount),
-            pings: pingsAvg,
-            rawPings: pingTotals,
-            syncedMatchCount: allNewMatchIds.length,
-            storedMatchCount: totalGamesCount,
-        });
-    } catch (error) {
-        handleApiError(res, error, "Failed to aggregate Flex stats");
+        // Pace requests (100 calls per 2 minutes)
+        await new Promise((resolve) => setTimeout(resolve, 1200));
     }
-});
+}
 
-// PEAK RANK LOGIC
+// Aggregate role wins and total games played
+function aggregateRoleStats(matches) {
+    const roles = {
+        TOP: { wins: 0, total: 0 },
+        JUNGLE: { wins: 0, total: 0 },
+        MIDDLE: { wins: 0, total: 0 },
+        BOTTOM: { wins: 0, total: 0 },
+        UTILITY: { wins: 0, total: 0 },
+    };
+
+    let totalWins = 0;
+
+    (matches || []).forEach((m) => {
+        const pos = m.team_position?.toUpperCase();
+        if (roles[pos]) {
+            roles[pos].total++;
+            if (m.win) {
+                roles[pos].wins++;
+                totalWins++;
+            }
+        }
+    });
+
+    const formatWR = (w, t) =>
+        t > 0 ? `${t} (${((w / t) * 100).toFixed(1)}%)` : "0";
+
+    return {
+        TOP: formatWR(roles.TOP.wins, roles.TOP.total),
+        JGL: formatWR(roles.JUNGLE.wins, roles.JUNGLE.total),
+        MID: formatWR(roles.MIDDLE.wins, roles.MIDDLE.total),
+        BOT: formatWR(roles.BOTTOM.wins, roles.BOTTOM.total),
+        SUP: formatWR(roles.UTILITY.wins, roles.UTILITY.total),
+        TOTAL: formatWR(totalWins, matches?.length || 0),
+    };
+}
+
+// Aggregate total and average ping counts across matches
+function aggregatePingStats(matches) {
+    const pingKeys = [
+        "allIn",
+        "assistMe",
+        "basic",
+        "danger",
+        "enemyMissing",
+        "enemyVision",
+        "getBack",
+        "needVision",
+        "onMyWay",
+        "push",
+    ];
+
+    const totals = Object.fromEntries(pingKeys.map((key) => [key, 0]));
+    totals.total = 0;
+
+    (matches || []).forEach((m) => {
+        const p = m.pings || {};
+        let matchSum = 0;
+
+        pingKeys.forEach((key) => {
+            const count = p[key] || 0;
+            totals[key] += count;
+            matchSum += count;
+        });
+
+        totals.total += matchSum;
+    });
+
+    const totalGames = matches?.length || 0;
+    const avg = (val) =>
+        totalGames > 0 ? (val / totalGames).toFixed(1) : "0.0";
+
+    const averages = {};
+    [...pingKeys, "total"].forEach((key) => {
+        averages[key] = avg(totals[key]);
+    });
+
+    return { averages, totals };
+}
+
+// Compute role winrates and per-game ping averages from stored match records
+function computeFlexAggregations(flexMatches) {
+    const totalGamesCount = flexMatches?.length || 0;
+    const roleStats = aggregateRoleStats(flexMatches);
+    const { averages: pingsAvg, totals: rawPings } =
+        aggregatePingStats(flexMatches);
+
+    return {
+        ...roleStats,
+        pings: pingsAvg,
+        rawPings,
+        storedMatchCount: totalGamesCount,
+    };
+}
+
+/* PEAK RANK HELPERS */
 
 const TIER_WEIGHTS = {
     IRON: 0,
@@ -482,6 +443,122 @@ function calculateRankScore(tier, rank, lp) {
     return tVal + dVal + (lp || 0);
 }
 
+// Evaluate live rank against historical peak and return updated peak data and DB fields
+function evaluatePeakEntry(liveEntry, storedPeak, queuePrefix, currentYear) {
+    let peak = {
+        tier: storedPeak.tier,
+        rank: storedPeak.rank,
+        lp: storedPeak.lp,
+        year: storedPeak.year,
+        games: storedPeak.games,
+        wins: storedPeak.wins,
+        losses: storedPeak.losses,
+    };
+
+    const updates = {};
+
+    if (liveEntry && liveEntry.tier) {
+        const currentScore = calculateRankScore(
+            liveEntry.tier,
+            liveEntry.rank,
+            liveEntry.leaguePoints,
+        );
+        const storedScore = calculateRankScore(
+            storedPeak.tier,
+            storedPeak.rank,
+            storedPeak.lp,
+        );
+        const liveGames = (liveEntry.wins || 0) + (liveEntry.losses || 0);
+
+        if (currentScore > storedScore) {
+            peak = {
+                tier: liveEntry.tier,
+                rank: liveEntry.rank,
+                lp: liveEntry.leaguePoints,
+                year: currentYear,
+                games: liveGames,
+                wins: liveEntry.wins,
+                losses: liveEntry.losses,
+            };
+            updates[`${queuePrefix}_tier`] = liveEntry.tier;
+            updates[`${queuePrefix}_rank`] = liveEntry.rank;
+            updates[`${queuePrefix}_lp`] = liveEntry.leaguePoints;
+            updates[`${queuePrefix}_year`] = currentYear;
+            updates[`${queuePrefix}_games`] = liveGames;
+            updates[`${queuePrefix}_wins`] = liveEntry.wins;
+            updates[`${queuePrefix}_losses`] = liveEntry.losses;
+        } else if (storedPeak.year === currentYear) {
+            peak.games = liveGames;
+            peak.wins = liveEntry.wins;
+            peak.losses = liveEntry.losses;
+            updates[`${queuePrefix}_games`] = liveGames;
+            updates[`${queuePrefix}_wins`] = liveEntry.wins;
+            updates[`${queuePrefix}_losses`] = liveEntry.losses;
+        }
+    }
+
+    return { peak, updates };
+}
+
+/* COMPLEX / DATABASE ROUTES */
+
+// Sync & Fetch Flex Role Breakdown for a player
+app.get("/api/player-flex-stats", async (req, res) => {
+    const { puuid, name, gameName, tagLine } = req.query;
+    if (!puuid) return res.status(400).json({ error: "PUUID required" });
+
+    try {
+        // Upsert player record first to satisfy foreign key constraints
+        await supabase.from("players").upsert(
+            {
+                puuid,
+                name: name || "Unknown",
+                game_name: gameName || "Unknown",
+                tag_line: tagLine || "Unknown",
+            },
+            { onConflict: "puuid" },
+        );
+
+        // Determine incremental sync start timestamp
+        const { data: playerData } = await supabase
+            .from("players")
+            .select("last_synced_at")
+            .eq("puuid", puuid)
+            .maybeSingle();
+
+        const startTime = playerData?.last_synced_at
+            ? Math.floor(playerData.last_synced_at / 1000)
+            : SEASON_2026_START;
+
+        // Fetch new matches & ingest
+        const allNewMatchIds = await fetchFlexMatchIds(puuid, startTime);
+        await ingestPlayerMatches(puuid, allNewMatchIds);
+
+        // Update last synced timestamp
+        await supabase
+            .from("players")
+            .update({ last_synced_at: Date.now() })
+            .eq("puuid", puuid);
+
+        // Query stored matches and calculate stats
+        const { data: flexMatches } = await supabase
+            .from("player_matches")
+            .select("team_position, win, pings")
+            .eq("puuid", puuid)
+            .eq("queue_id", 440)
+            .gte("game_creation", SEASON_2026_START * 1000);
+
+        const aggregations = computeFlexAggregations(flexMatches);
+
+        res.json({
+            ...aggregations,
+            syncedMatchCount: allNewMatchIds.length,
+        });
+    } catch (error) {
+        handleApiError(res, error, "Failed to aggregate Flex stats");
+    }
+});
+
 // Get and dynamically evaluate peaks stored in Supabase
 app.post("/api/player-peaks", async (req, res) => {
     const { puuid, soloEntry, flexEntry } = req.body;
@@ -494,14 +571,13 @@ app.post("/api/player-peaks", async (req, res) => {
             .eq("puuid", puuid)
             .maybeSingle();
 
-        if (error || !player)
+        if (error || !player) {
             return res.status(404).json({ error: "Player not found" });
+        }
 
         const currentYear = new Date().getFullYear();
-        const updates = {};
 
-        // Evaluate Solo/Duo Peak
-        let peakSolo = {
+        const storedSolo = {
             tier: player.peak_solo_tier,
             rank: player.peak_solo_rank,
             lp: player.peak_solo_lp,
@@ -511,48 +587,7 @@ app.post("/api/player-peaks", async (req, res) => {
             losses: player.peak_solo_losses,
         };
 
-        if (soloEntry && soloEntry.tier) {
-            const currentScore = calculateRankScore(
-                soloEntry.tier,
-                soloEntry.rank,
-                soloEntry.leaguePoints,
-            );
-            const storedScore = calculateRankScore(
-                player.peak_solo_tier,
-                player.peak_solo_rank,
-                player.peak_solo_lp,
-            );
-            const liveGames = (soloEntry.wins || 0) + (soloEntry.losses || 0);
-
-            if (currentScore > storedScore) {
-                peakSolo = {
-                    tier: soloEntry.tier,
-                    rank: soloEntry.rank,
-                    lp: soloEntry.leaguePoints,
-                    year: currentYear,
-                    games: liveGames,
-                    wins: soloEntry.wins,
-                    losses: soloEntry.losses,
-                };
-                updates.peak_solo_tier = soloEntry.tier;
-                updates.peak_solo_rank = soloEntry.rank;
-                updates.peak_solo_lp = soloEntry.leaguePoints;
-                updates.peak_solo_year = currentYear;
-                updates.peak_solo_games = liveGames;
-                updates.peak_solo_wins = soloEntry.wins;
-                updates.peak_solo_losses = soloEntry.losses;
-            } else if (player.peak_solo_year === currentYear) {
-                peakSolo.games = liveGames;
-                peakSolo.wins = soloEntry.wins;
-                peakSolo.losses = soloEntry.losses;
-                updates.peak_solo_games = liveGames;
-                updates.peak_solo_wins = soloEntry.wins;
-                updates.peak_solo_losses = soloEntry.losses;
-            }
-        }
-
-        // Evaluate Flex Peak
-        let peakFlex = {
+        const storedFlex = {
             tier: player.peak_flex_tier,
             rank: player.peak_flex_rank,
             lp: player.peak_flex_lp,
@@ -562,46 +597,21 @@ app.post("/api/player-peaks", async (req, res) => {
             losses: player.peak_flex_losses,
         };
 
-        if (flexEntry && flexEntry.tier) {
-            const currentScore = calculateRankScore(
-                flexEntry.tier,
-                flexEntry.rank,
-                flexEntry.leaguePoints,
-            );
-            const storedScore = calculateRankScore(
-                player.peak_flex_tier,
-                player.peak_flex_rank,
-                player.peak_flex_lp,
-            );
-            const liveGames = (flexEntry.wins || 0) + (flexEntry.losses || 0);
+        const { peak: peakSolo, updates: soloUpdates } = evaluatePeakEntry(
+            soloEntry,
+            storedSolo,
+            "peak_solo",
+            currentYear,
+        );
 
-            if (currentScore > storedScore) {
-                peakFlex = {
-                    tier: flexEntry.tier,
-                    rank: flexEntry.rank,
-                    lp: flexEntry.leaguePoints,
-                    year: currentYear,
-                    games: liveGames,
-                    wins: flexEntry.wins,
-                    losses: flexEntry.losses,
-                };
-                updates.peak_flex_tier = flexEntry.tier;
-                updates.peak_flex_rank = flexEntry.rank;
-                updates.peak_flex_lp = flexEntry.leaguePoints;
-                updates.peak_flex_year = currentYear;
-                updates.peak_flex_games = liveGames;
-                updates.peak_flex_wins = flexEntry.wins;
-                updates.peak_flex_losses = flexEntry.losses;
-            } else if (player.peak_flex_year === currentYear) {
-                peakFlex.games = liveGames;
-                peakFlex.wins = flexEntry.wins;
-                peakFlex.losses = flexEntry.losses;
-                updates.peak_flex_games = liveGames;
-                updates.peak_flex_wins = flexEntry.wins;
-                updates.peak_flex_losses = flexEntry.losses;
-            }
-        }
+        const { peak: peakFlex, updates: flexUpdates } = evaluatePeakEntry(
+            flexEntry,
+            storedFlex,
+            "peak_flex",
+            currentYear,
+        );
 
+        const updates = { ...soloUpdates, ...flexUpdates };
         if (Object.keys(updates).length > 0) {
             await supabase.from("players").update(updates).eq("puuid", puuid);
         }
@@ -612,7 +622,8 @@ app.post("/api/player-peaks", async (req, res) => {
     }
 });
 
-// Route for HTML pages
+/* STATIC HTML ROUTES */
+
 app.get("/MasteryMaxxer", (req, res) => {
     res.sendFile(path.join(__dirname, "public", "MasteryMaxxer.html"));
 });
@@ -625,7 +636,8 @@ app.get("/Johnsons", (req, res) => {
     res.sendFile(path.join(__dirname, "public", "Johnsons.html"));
 });
 
-// Start server
+/* SERVER INITIALIZATION */
+
 app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}/Johnsons`);
 });

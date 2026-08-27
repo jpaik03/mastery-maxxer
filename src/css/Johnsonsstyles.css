@@ -15,7 +15,27 @@ h3 {
 }
 
 #controls {
-  margin-top: 10px;
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  margin: 0;
+  z-index: 10;
+}
+
+#load-all-btn {
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  border: 1px solid #ccc;
+  background-color: #f7f7f7;
+  color: #444;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+#load-all-btn:hover {
+  background-color: #e9ecef;
 }
 
 #view-toggle-container {
@@ -30,8 +50,8 @@ h3 {
 }
 
 .view-toggle-btn {
-  padding: 6px 18px;
-  font-size: 14px;
+  padding: 8px 22px;
+  font-size: 16px;
   font-weight: 600;
   border: 1px solid #ccc;
   background-color: #f7f7f7;
@@ -263,10 +283,15 @@ tbody th .role-header-content {
   width: 12%;
 }
 
+#champion-leaderboard,
+#duo-leaderboard,
+#pings-leaderboard {
+  font-size: 13px !important;
+}
+
 #pings-leaderboard {
   width: 60%;
   margin: 10px auto 30px auto;
-  font-size: 13px !important;
 }
 
 #pings-leaderboard th#pings-total-header {
@@ -290,7 +315,7 @@ tbody th .role-header-content {
 
 #ranked-shared-controls {
   margin: 0 -15px 4px -15px;
-  font-size: 12px;
+  font-size: 14px;
   white-space: nowrap;
   z-index: 2;
 }
@@ -300,25 +325,26 @@ tbody th .role-header-content {
 #leaderboard-controls,
 #pings-controls {
   margin-bottom: 10px;
-  font-size: 11px;
+  font-size: 14px;
 }
 
 #ranked-shared-mode-select,
 #champion-mode-select,
 #pings-mode-select {
   margin-left: 6px;
-  padding: 2px 6px;
-  font-size: 11px;
+  padding: 3px 8px;
+  font-size: 14px;
 }
 
 #champion-min-games-label,
 #duo-min-games-label {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  margin-left: 10px;
+  gap: 6px;
+  margin-left: 12px;
   cursor: pointer;
   user-select: none;
+  font-size: 14px;
 }
 
 #champion-icon-container {
@@ -337,6 +363,7 @@ tbody th .role-header-content {
 .duo-dropdown-label {
   display: inline-flex;
   align-items: center;
+  font-size: 14px;
 }
 
 .custom-champ-select,
@@ -349,9 +376,9 @@ tbody th .role-header-content {
 #champion-search,
 #duo-player-search {
   margin: 0;
-  padding: 2px 20px 2px 6px;
-  font-size: 11px;
-  width: 140px;
+  padding: 3px 22px 3px 8px;
+  font-size: 14px;
+  width: 150px;
   font-family: "Beaufort", Helvetica, Arial, sans-serif;
   border: 1px solid #ccc;
   border-radius: 2px;
@@ -368,10 +395,10 @@ tbody th .role-header-content {
 
 .custom-select-arrow {
   position: absolute;
-  right: 6px;
+  right: 8px;
   top: 50%;
   transform: translateY(-50%);
-  font-size: 7px;
+  font-size: 8px;
   color: #666;
   pointer-events: none;
 }
@@ -390,7 +417,7 @@ tbody th .role-header-content {
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
   z-index: 100;
   font-family: "Beaufort", Helvetica, Arial, sans-serif;
-  font-size: 11px;
+  font-size: 13px;
   box-sizing: border-box;
 }
 
@@ -399,7 +426,7 @@ tbody th .role-header-content {
 }
 
 .custom-select-option {
-  padding: 4px 8px;
+  padding: 5px 8px;
   cursor: pointer;
   text-align: left;
   white-space: nowrap;
@@ -425,15 +452,21 @@ tbody th .role-header-content {
 
 #view-ranked #champion-controls,
 #view-ranked #duo-controls,
-#view-ranked #pings-controls {
-  font-size: 12px;
+#view-ranked #pings-controls,
+#view-ranked #ranked-shared-controls {
+  font-size: 14px;
 }
 
 #view-ranked #champion-search,
 #view-ranked #duo-player-search,
-#view-ranked select,
+#view-ranked #champion-mode-select,
+#view-ranked #pings-mode-select,
+#view-ranked #ranked-shared-mode-select {
+  font-size: 14px;
+}
+
 #view-ranked .custom-select-dropdown {
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .table-action-row td {

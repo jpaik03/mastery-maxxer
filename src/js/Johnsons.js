@@ -1,8 +1,8 @@
 /*
  *  Johnsons.js
- *  Justin Paik
+ *  Justin Paik, Owen Jin
  *  Created: 16 March 2025
- *  Last Updated: 26 August 2026
+ *  Last Updated: 27 August 2026
  *  Client-side controller for Johnsons dashboard
  *
  *  This module coordinates player roster profile fetches, populates summary
@@ -306,6 +306,19 @@ function buildLeaderboardRowHtml(p) {
     `;
 }
 
+// Generate an HTML table row for the champion-specific leaderboard
+function buildChampionLeaderboardRowHtml(player, index) {
+    return `
+        <tr>
+            <td><strong>${index + 1}</strong></td>
+            <td><strong>${player.name}</strong></td>
+            <td>${player.wins}-${player.losses}</td>
+            <td>${player.games > 0 ? `${player.winRate.toFixed(1)}%` : "—"}</td>
+            <td>${player.games}</td>
+        </tr>
+    `;
+}
+
 // Generate an HTML table row for the pings leaderboard
 function buildPingRowHtml(p, isTotalMode) {
     const src = isTotalMode ? p.raw : p.avg;
@@ -522,38 +535,49 @@ function appendProfileTableColumns(profileData) {
         .getElementById("row-peak-flex")
         .insertAdjacentHTML("beforeend", `<td>${flexPeak.rankText}</td>`);
 
-        // S26 Ranked 5v5 Table
+    // S26 Ranked 5v5 Table
     document
         .getElementById("row-fives-name")
-        .insertAdjacentHTML("beforeend", `<td><strong>${name}</strong></td>`,);
-
+        .insertAdjacentHTML("beforeend", `<td><strong>${name}</strong></td>`);
     document
         .getElementById("row-fives-rank")
-        .insertAdjacentHTML("beforeend", `<td>${fivesText}</td>`,);
-
+        .insertAdjacentHTML("beforeend", `<td>${fivesText}</td>`);
     document
         .getElementById("row-fives-top")
-        .insertAdjacentHTML("beforeend", `<td>${rankedFivesStats.TOP || "0"}</td>`,);
-
+        .insertAdjacentHTML(
+            "beforeend",
+            `<td>${rankedFivesStats.TOP || "0"}</td>`,
+        );
     document
         .getElementById("row-fives-jgl")
-        .insertAdjacentHTML("beforeend", `<td>${rankedFivesStats.JGL || "0"}</td>`,);
-
+        .insertAdjacentHTML(
+            "beforeend",
+            `<td>${rankedFivesStats.JGL || "0"}</td>`,
+        );
     document
         .getElementById("row-fives-mid")
-        .insertAdjacentHTML("beforeend", `<td>${rankedFivesStats.MID || "0"}</td>`,);
-
+        .insertAdjacentHTML(
+            "beforeend",
+            `<td>${rankedFivesStats.MID || "0"}</td>`,
+        );
     document
         .getElementById("row-fives-bot")
-        .insertAdjacentHTML("beforeend", `<td>${rankedFivesStats.BOT || "0"}</td>`,);
-
+        .insertAdjacentHTML(
+            "beforeend",
+            `<td>${rankedFivesStats.BOT || "0"}</td>`,
+        );
     document
         .getElementById("row-fives-sup")
-        .insertAdjacentHTML("beforeend", `<td>${rankedFivesStats.SUP || "0"}</td>`,);
-
+        .insertAdjacentHTML(
+            "beforeend",
+            `<td>${rankedFivesStats.SUP || "0"}</td>`,
+        );
     document
         .getElementById("row-fives-total")
-        .insertAdjacentHTML("beforeend", `<td>${rankedFivesStats.TOTAL || "0"}</td>`,);
+        .insertAdjacentHTML(
+            "beforeend",
+            `<td>${rankedFivesStats.TOTAL || "0"}</td>`,
+        );
 }
 
 // Update sorting arrow indicators on table header elements
@@ -587,18 +611,12 @@ function renderLeaderboard() {
     updateHeaderSortArrows("#leaderboard", currentSortKey, currentSortAsc);
 }
 
+// Render champion-specific winrate/games leaderboard table
 function renderChampionLeaderboard() {
-    const tbody = document.getElementById(
-        "champion-leaderboard-body",
-    );
+    const tbody = document.getElementById("champion-leaderboard-body");
+    if (!tbody) return;
 
-    if (!tbody) {
-        return;
-    }
-
-    const sortedPlayers = [
-        ...championLeaderboardData,
-    ].sort((a, b) => {
+    const sortedPlayers = [...championLeaderboardData].sort((a, b) => {
         if (championLeaderboardMode === "games") {
             return (
                 b.games - a.games ||
@@ -606,7 +624,6 @@ function renderChampionLeaderboard() {
                 a.name.localeCompare(b.name)
             );
         }
-
         return (
             b.winRate - a.winRate ||
             b.games - a.games ||
@@ -615,88 +632,8 @@ function renderChampionLeaderboard() {
     });
 
     tbody.innerHTML = sortedPlayers
-        .map(
-            (player, index) => `
-                <tr>
-                    <td>
-                        <strong>${index + 1}</strong>
-                    </td>
-
-                    <td>
-                        <strong>${player.name}</strong>
-                    </td>
-
-                    <td>
-                        ${player.wins}-${player.losses}
-                    </td>
-
-                    <td>
-                        ${
-                            player.games > 0
-                                ? `${player.winRate.toFixed(1)}%`
-                                : "—"
-                        }
-                    </td>
-
-                    <td>${player.games}</td>
-                </tr>
-            `,
-        )
+        .map(buildChampionLeaderboardRowHtml)
         .join("");
-}
-
-async function loadChampionLeaderboard() {
-    const championSelect =
-        document.getElementById("champion-select");
-
-    const championStatus =
-        document.getElementById("champion-status");
-
-    const championId = championSelect?.value;
-
-    if (!championId) {
-        return;
-    }
-
-    championStatus.textContent = "Loading...";
-
-    try {
-        const result =
-            await fetchChampionLeaderboard(
-                championId,
-            );
-
-        const statsByPuuid = new Map(
-            (result.players || []).map((player) => [
-                player.puuid,
-                player,
-            ]),
-        );
-
-        championLeaderboardData = PLAYERS.map(
-            (player) => {
-                const playerStats =
-                    statsByPuuid.get(player.puuid);
-
-                return {
-                    name: player.name,
-                    puuid: player.puuid,
-                    wins: playerStats?.wins || 0,
-                    losses: playerStats?.losses || 0,
-                    games: playerStats?.games || 0,
-                    winRate: playerStats?.winRate || 0,
-                };
-            },
-        );
-
-        renderChampionLeaderboard();
-        championStatus.textContent = "";
-    } catch (error) {
-        console.error(error);
-
-        championStatus.textContent =
-            `Error: ${error.message}`;
-    }
 }
 
 // Render pings leaderboard table (average or total count view)
@@ -768,29 +705,16 @@ function setupLeaderboardSorting() {
     }
 }
 
+// Bind event listeners for champion-specific leaderboard selection and sorting mode
 function setupChampionLeaderboard() {
-    const championSelect =
-        document.getElementById("champion-select");
+    const championSelect = document.getElementById("champion-select");
+    const modeSelect = document.getElementById("champion-mode-select");
 
-    const modeSelect =
-        document.getElementById(
-            "champion-mode-select",
-        );
-
-    championSelect?.addEventListener(
-        "change",
-        loadChampionLeaderboard,
-    );
-
-    modeSelect?.addEventListener(
-        "change",
-        (event) => {
-            championLeaderboardMode =
-                event.target.value;
-
-            renderChampionLeaderboard();
-        },
-    );
+    championSelect?.addEventListener("change", loadChampionLeaderboard);
+    modeSelect?.addEventListener("change", (event) => {
+        championLeaderboardMode = event.target.value;
+        renderChampionLeaderboard();
+    });
 }
 
 // Bind event listeners for ping leaderboard column headers and view toggles
@@ -859,41 +783,56 @@ function setupChampIconHighlighting() {
 async function initChampionData() {
     if (Object.keys(championMap).length === 0) {
         championMap = await getChampMap();
+        totalChampionCount = Object.keys(championMap).length;
 
-        totalChampionCount =
-            Object.keys(championMap).length;
-
-        const headerEl =
-            document.getElementById("header-champs");
-
+        const headerEl = document.getElementById("header-champs");
         if (headerEl) {
-            headerEl.innerText =
-                `Mastery Champions (out of ${totalChampionCount})`;
+            headerEl.innerText = `Mastery Champions (out of ${totalChampionCount})`;
         }
 
-        const championSelect =
-            document.getElementById(
-                "champion-select",
-            );
-
+        const championSelect = document.getElementById("champion-select");
         if (championSelect) {
-            championSelect.innerHTML =
-                Object.entries(championMap)
-                    .sort(
-                        (
-                            [, nameA],
-                            [, nameB],
-                        ) =>
-                            nameA.localeCompare(
-                                nameB,
-                            ),
-                    )
-                    .map(
-                        ([id, name]) =>
-                            `<option value="${id}">${name}</option>`,
-                    )
-                    .join("");
+            championSelect.innerHTML = Object.entries(championMap)
+                .sort(([, nameA], [, nameB]) => nameA.localeCompare(nameB))
+                .map(([id, name]) => `<option value="${id}">${name}</option>`)
+                .join("");
         }
+    }
+}
+
+// Query aggregate champion statistics across the roster and populate leaderboard
+async function loadChampionLeaderboard() {
+    const championSelect = document.getElementById("champion-select");
+    const championStatus = document.getElementById("champion-status");
+    const championId = championSelect?.value;
+
+    if (!championId) return;
+
+    championStatus.textContent = "Loading...";
+
+    try {
+        const result = await fetchChampionLeaderboard(championId);
+        const statsByPuuid = new Map(
+            (result.players || []).map((player) => [player.puuid, player]),
+        );
+
+        championLeaderboardData = PLAYERS.map((player) => {
+            const playerStats = statsByPuuid.get(player.puuid);
+            return {
+                name: player.name,
+                puuid: player.puuid,
+                wins: playerStats?.wins || 0,
+                losses: playerStats?.losses || 0,
+                games: playerStats?.games || 0,
+                winRate: playerStats?.winRate || 0,
+            };
+        });
+
+        renderChampionLeaderboard();
+        championStatus.textContent = "";
+    } catch (error) {
+        console.error(error);
+        championStatus.textContent = `Error: ${error.message}`;
     }
 }
 
@@ -904,24 +843,19 @@ async function fetchPlayerProfile(player) {
         throw new Error(`Could not find profile for ${player.name}`);
     }
 
-    const [
-        summoner,
-        ranked,
-        masteries,
-        flexStats,
-        rankedFivesStats,
-    ] = await Promise.all([
-        fetchSummonerData(player.puuid),
-        fetchRankedData(player.puuid),
-        fetchMasteryData(player.puuid),
-        fetchFlexStats(
-            player.puuid,
-            player.name,
-            account.gameName,
-            account.tagLine,
-        ),
-        fetchRankedFivesStats(player.puuid),
-    ]);
+    const [summoner, ranked, masteries, flexStats, rankedFivesStats] =
+        await Promise.all([
+            fetchSummonerData(player.puuid),
+            fetchRankedData(player.puuid),
+            fetchMasteryData(player.puuid),
+            fetchFlexStats(
+                player.puuid,
+                player.name,
+                account.gameName,
+                account.tagLine,
+            ),
+            fetchRankedFivesStats(player.puuid),
+        ]);
 
     const { solo, flex, fives } = extractQueueEntries(ranked);
     const { totalPoints, totalPointsText, playedChampsCount, top5Text } =
@@ -964,8 +898,7 @@ async function fetchPlayerProfile(player) {
 
 // Clear tables, fetch metadata, and sequentially load all player profiles
 async function loadAllProfiles() {
-    const statusMsg =
-        document.getElementById("status-msg");
+    const statusMsg = document.getElementById("status-msg");
 
     clearProfileTables();
 
@@ -973,22 +906,15 @@ async function loadAllProfiles() {
     pingsLeaderboardData = [];
 
     try {
-        statusMsg.innerText =
-            "Checking for new Flex and Ranked 5v5 matches...";
+        statusMsg.innerText = "Checking for new Flex and Ranked 5v5 matches...";
 
         await syncRankedQueues();
         await initChampionData();
         await loadChampionLeaderboard();
 
-        for (
-            let i = 0;
-            i < PLAYERS.length;
-            i++
-        ) {
+        for (let i = 0; i < PLAYERS.length; i++) {
             const player = PLAYERS[i];
-
-            statusMsg.innerText =
-                `Loading (${i + 1}/${PLAYERS.length}): ${player.name}...`;
+            statusMsg.innerText = `Loading (${i + 1}/${PLAYERS.length}): ${player.name}...`;
 
             await fetchPlayerProfile(player);
             renderLeaderboard();
@@ -998,8 +924,7 @@ async function loadAllProfiles() {
         statusMsg.innerText = "";
     } catch (error) {
         console.error(error);
-        statusMsg.innerText =
-            `Error: ${error.message}`;
+        statusMsg.innerText = `Error: ${error.message}`;
     }
 }
 

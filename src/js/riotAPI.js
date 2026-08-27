@@ -1,8 +1,8 @@
 /*
  *  riotApi.js
- *  Justin Paik
+ *  Justin Paik, Owen Jin
  *  Created: 27 May 2025
- *  Last Updated: 24 August 2026
+ *  Last Updated: 27 August 2026
  *  Riot API helper functions
  *
  *  This module provides asynchronous functions to interact with Riot's API
@@ -148,24 +148,18 @@ export async function fetchFlexStats(puuid, name, gameName, tagLine) {
 }
 
 export async function syncRankedQueues() {
-    const response = await fetch(
-        "/api/sync-roster-ranked",
-        {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({}),
+    const response = await fetch("/api/sync-roster-ranked", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
         },
-    );
+        body: JSON.stringify({}),
+    });
 
     const result = await response.json();
 
     if (!response.ok) {
-        throw new Error(
-            result.error ||
-                "Failed to synchronize ranked queues",
-        );
+        throw new Error(result.error || "Failed to synchronize ranked queues");
     }
 
     return result;
@@ -173,17 +167,13 @@ export async function syncRankedQueues() {
 
 export async function fetchRankedFivesStats(puuid) {
     const response = await fetch(
-        `/api/player-ranked-fives-stats?puuid=${encodeURIComponent(
-            puuid,
-        )}`,
+        `/api/player-ranked-fives-stats?puuid=${encodeURIComponent(puuid)}`,
     );
 
     return await response.json();
 }
 
-export async function fetchChampionLeaderboard(
-    championId,
-) {
+export async function fetchChampionLeaderboard(championId) {
     const response = await fetch(
         `/api/champion-leaderboard?championId=${encodeURIComponent(
             championId,
@@ -193,10 +183,7 @@ export async function fetchChampionLeaderboard(
     const result = await response.json();
 
     if (!response.ok) {
-        throw new Error(
-            result.error ||
-                "Failed to load champion leaderboard",
-        );
+        throw new Error(result.error || "Failed to load champion leaderboard");
     }
 
     return result;

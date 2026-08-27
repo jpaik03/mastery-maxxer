@@ -256,6 +256,14 @@ function compareValues(a, b, key, isAscending) {
     return nameA.localeCompare(nameB);
 }
 
+// Return a soft highlight CSS class based on win rate threshold
+function getWinrateHighlightClass(wr, games) {
+    if (!games || games === 0 || wr < 0) return "";
+    if (wr > 50) return "wr-positive";
+    if (wr < 50) return "wr-negative";
+    return;
+}
+
 // Format a numeric ping count or average value
 function formatPingValue(num, isTotalMode) {
     return isTotalMode ? Math.round(num).toLocaleString() : num.toFixed(1);
@@ -322,12 +330,12 @@ function buildFivesLeaderboardRowHtml(p) {
         <tr>
             <td><strong>${p.name}</strong></td>
             <td>${p.fivesHtml}</td>
-            <td>${p.topText}</td>
-            <td>${p.jglText}</td>
-            <td>${p.midText}</td>
-            <td>${p.botText}</td>
-            <td>${p.supText}</td>
-            <td>${p.totalText}</td>
+            <td class="${getWinrateHighlightClass(p.topWr, p.topGames)}">${p.topText}</td>
+            <td class="${getWinrateHighlightClass(p.jglWr, p.jglGames)}">${p.jglText}</td>
+            <td class="${getWinrateHighlightClass(p.midWr, p.midGames)}">${p.midText}</td>
+            <td class="${getWinrateHighlightClass(p.botWr, p.botGames)}">${p.botText}</td>
+            <td class="${getWinrateHighlightClass(p.supWr, p.supGames)}">${p.supText}</td>
+            <td class="${getWinrateHighlightClass(p.totalWr, p.totalGames)}">${p.totalText}</td>
         </tr>
     `;
 }
@@ -338,24 +346,25 @@ function buildFlexLeaderboardRowHtml(p) {
         <tr>
             <td><strong>${p.name}</strong></td>
             <td>${p.flexHtml}</td>
-            <td>${p.topText}</td>
-            <td>${p.jglText}</td>
-            <td>${p.midText}</td>
-            <td>${p.botText}</td>
-            <td>${p.supText}</td>
-            <td>${p.totalText}</td>
+            <td class="${getWinrateHighlightClass(p.topWr, p.topGames)}">${p.topText}</td>
+            <td class="${getWinrateHighlightClass(p.jglWr, p.jglGames)}">${p.jglText}</td>
+            <td class="${getWinrateHighlightClass(p.midWr, p.midGames)}">${p.midText}</td>
+            <td class="${getWinrateHighlightClass(p.botWr, p.botGames)}">${p.botText}</td>
+            <td class="${getWinrateHighlightClass(p.supWr, p.supGames)}">${p.supText}</td>
+            <td class="${getWinrateHighlightClass(p.totalWr, p.totalGames)}">${p.totalText}</td>
         </tr>
     `;
 }
 
 // Generate an HTML table row for the champion-specific leaderboard
 function buildChampionLeaderboardRowHtml(player, index) {
+    const wrClass = getWinrateHighlightClass(player.winRate, player.games);
     return `
         <tr>
             <td><strong>${index + 1}</strong></td>
             <td><strong>${player.name}</strong></td>
             <td>${player.wins}-${player.losses}</td>
-            <td>${player.games > 0 ? `${player.winRate.toFixed(1)}%` : "—"}</td>
+            <td class="${wrClass}">${player.games > 0 ? `${player.winRate.toFixed(1)}%` : "—"}</td>
             <td>${player.games}</td>
         </tr>
     `;
@@ -791,7 +800,7 @@ function setupFivesLeaderboardSorting() {
                     currentFivesSortAsc = !currentFivesSortAsc;
                 } else {
                     currentFivesSortKey = sortKey;
-                    currentFivesSortAsc = false;
+                    currentFivesSortAsc = sortKey === "name";
                 }
                 renderFivesLeaderboard();
             });
@@ -817,7 +826,7 @@ function setupFlexLeaderboardSorting() {
                     currentFlexSortAsc = !currentFlexSortAsc;
                 } else {
                     currentFlexSortKey = sortKey;
-                    currentFlexSortAsc = false;
+                    currentFlexSortAsc = sortKey === "name";
                 }
                 renderFlexLeaderboard();
             });

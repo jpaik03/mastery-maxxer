@@ -147,6 +147,14 @@ tbody th .role-header-content {
   margin: 0;
 }
 
+.wr-positive {
+  background-color: #e6f4ea !important;
+}
+
+.wr-negative {
+  background-color: #fce8e6 !important;
+}
+
 #leaderboard {
   width: 40%;
   margin-top: 10px;
@@ -164,9 +172,17 @@ tbody th .role-header-content {
 #fives-leaderboard,
 #flex-leaderboard,
 #pings-leaderboard {
-  width: 70%;
+  width: 65%;
   margin-top: 10px;
   margin-bottom: 30px;
+}
+
+#pings-leaderboard th#pings-total-header {
+  width: 12%;
+}
+
+#pings-leaderboard th:not(#pings-total-header) {
+  width: 8%;
 }
 
 #champion-leaderboard {
@@ -208,13 +224,6 @@ tbody th .role-header-content {
   font-size: 11px;
 }
 
-#champion-search {
-  margin: 0 12px 0 6px;
-  padding: 2px 6px;
-  font-size: 11px;
-  width: 140px;
-}
-
 #champion-mode-select,
 #flex-leaderboard-mode-select,
 #fives-leaderboard-mode-select,
@@ -224,10 +233,6 @@ tbody th .role-header-content {
   font-size: 11px;
 }
 
-#champion-status {
-  margin-left: 10px;
-}
-
 #champion-min-games-label {
   display: inline-flex;
   align-items: center;
@@ -235,6 +240,22 @@ tbody th .role-header-content {
   margin-left: 10px;
   cursor: pointer;
   user-select: none;
+}
+
+#champion-icon-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 6px;
+  margin-bottom: 10px;
+}
+
+#champion-selected-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  display: block;
 }
 
 .champ-dropdown-label {
@@ -264,22 +285,6 @@ tbody th .role-header-content {
 #champion-search:focus {
   cursor: text;
   outline: 1px solid #1a5fb4;
-}
-
-#champion-icon-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-top: 6px;
-  margin-bottom: 10px;
-}
-
-#champion-selected-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-  display: block;
 }
 
 .custom-select-arrow {
@@ -363,4 +368,31 @@ tbody th .role-header-content {
   background-color: #1a5fb4;
   color: #fff;
   border-color: #1a5fb4;
+}
+
+#view-ranked table {
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+#view-ranked tr:not(#row-top10) th,
+#view-ranked tr:not(#row-top10) td {
+  height: 28px;
+  padding: 6px 8px;
+}
+
+#view-ranked #champion-controls,
+#view-ranked #flex-leaderboard-controls,
+#view-ranked #fives-leaderboard-controls,
+#view-ranked #pings-controls {
+  font-size: 15px;
+}
+
+#view-ranked #champion-search,
+#view-ranked select {
+  font-size: 14px;
+}
+
+#view-ranked .custom-select-dropdown {
+  font-size: 14px;
 }

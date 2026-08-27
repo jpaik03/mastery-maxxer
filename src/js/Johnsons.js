@@ -121,23 +121,6 @@ const PROFILE_TABLE_ROW_IDS = [
     "row-peak-solo",
     "row-peak-solo-games",
     "row-top10",
-    "row-flex-name",
-    "row-flex",
-    "row-flex-top",
-    "row-flex-jgl",
-    "row-flex-mid",
-    "row-flex-bot",
-    "row-flex-sup",
-    "row-flex-total",
-    "row-peak-flex",
-    "row-fives-name",
-    "row-fives-rank",
-    "row-fives-top",
-    "row-fives-jgl",
-    "row-fives-mid",
-    "row-fives-bot",
-    "row-fives-sup",
-    "row-fives-total",
 ];
 
 /* STATE MANAGEMENT */
@@ -148,6 +131,11 @@ let totalChampionCount = 0;
 let profileLeaderboardData = [];
 let currentProfileSortKey = "soloScore";
 let currentProfileSortAsc = false;
+
+let fivesLeaderboardData = [];
+let fivesLeaderboardMode = "wr";
+let currentFivesSortKey = "fivesScore";
+let currentFivesSortAsc = false;
 
 let flexLeaderboardData = [];
 let flexLeaderboardMode = "wr";
@@ -260,7 +248,20 @@ function formatPingValue(num, isTotalMode) {
     return isTotalMode ? Math.round(num).toLocaleString() : num.toFixed(1);
 }
 
-// Resolve active column sort key based on current winrate vs games view mode
+// Resolve active column sort key based on current winrate vs games view mode for 5s
+function getResolvedFivesSortKey(key) {
+    const roleMap = {
+        top: fivesLeaderboardMode === "games" ? "topGames" : "topWr",
+        jgl: fivesLeaderboardMode === "games" ? "jglGames" : "jglWr",
+        mid: fivesLeaderboardMode === "games" ? "midGames" : "midWr",
+        bot: fivesLeaderboardMode === "games" ? "botGames" : "botWr",
+        sup: fivesLeaderboardMode === "games" ? "supGames" : "supWr",
+        total: fivesLeaderboardMode === "games" ? "totalGames" : "totalWr",
+    };
+    return roleMap[key] || key;
+}
+
+// Resolve active column sort key based on current winrate vs games view mode for Flex
 function getResolvedFlexSortKey(key) {
     const roleMap = {
         top: flexLeaderboardMode === "games" ? "topGames" : "topWr",
@@ -302,13 +303,28 @@ function buildProfileLeaderboardRowHtml(p) {
     `;
 }
 
+// Generate an HTML table row for the S26 Ranked 5s role leaderboard
+function buildFivesLeaderboardRowHtml(p) {
+    return `
+        <tr>
+            <td><strong>${p.name}</strong></td>
+            <td>${p.fivesHtml}</td>
+            <td>${p.topText}</td>
+            <td>${p.jglText}</td>
+            <td>${p.midText}</td>
+            <td>${p.botText}</td>
+            <td>${p.supText}</td>
+            <td>${p.totalText}</td>
+        </tr>
+    `;
+}
+
 // Generate an HTML table row for the S26 Flex role leaderboard
 function buildFlexLeaderboardRowHtml(p) {
     return `
         <tr>
             <td><strong>${p.name}</strong></td>
             <td>${p.flexHtml}</td>
-            <td>${p.fivesHtml}</td>
             <td>${p.topText}</td>
             <td>${p.jglText}</td>
             <td>${p.midText}</td>
@@ -382,14 +398,39 @@ function buildPingsLeaderboardEntry(player, flexStats) {
     };
 }
 
+// Build leaderboard row object containing sortable and display fields for 5s
+function buildFivesLeaderboardEntry(player, fives, fivesStats) {
+    return {
+        name: player.name,
+        fivesScore: getRankScore(fives),
+        fivesHtml: formatRank(fives),
+        topWr: parseWinrate(fivesStats.TOP),
+        topGames: parseGamesCount(fivesStats.TOP),
+        topText: fivesStats.TOP || "0",
+        jglWr: parseWinrate(fivesStats.JGL),
+        jglGames: parseGamesCount(fivesStats.JGL),
+        jglText: fivesStats.JGL || "0",
+        midWr: parseWinrate(fivesStats.MID),
+        midGames: parseGamesCount(fivesStats.MID),
+        midText: fivesStats.MID || "0",
+        botWr: parseWinrate(fivesStats.BOT),
+        botGames: parseGamesCount(fivesStats.BOT),
+        botText: fivesStats.BOT || "0",
+        supWr: parseWinrate(fivesStats.SUP),
+        supGames: parseGamesCount(fivesStats.SUP),
+        supText: fivesStats.SUP || "0",
+        totalWr: parseWinrate(fivesStats.TOTAL),
+        totalGames: parseGamesCount(fivesStats.TOTAL),
+        totalText: fivesStats.TOTAL || "0",
+    };
+}
+
 // Build leaderboard row object containing sortable and display fields for Flex
-function buildFlexLeaderboardEntry(player, flex, fives, flexStats) {
+function buildFlexLeaderboardEntry(player, flex, flexStats) {
     return {
         name: player.name,
         flexScore: getRankScore(flex),
         flexHtml: formatRank(flex),
-        fivesScore: getRankScore(fives),
-        fivesHtml: formatRank(fives),
         topWr: parseWinrate(flexStats.TOP),
         topGames: parseGamesCount(flexStats.TOP),
         topText: flexStats.TOP || "0",
@@ -457,21 +498,10 @@ function clearProfileTables() {
     });
 }
 
-// Append player column cells to Profile Summary and S26 Flex tables
+// Append player column cells to Profile Summary
 function appendProfileTableColumns(profileData) {
-    const {
-        name,
-        account,
-        summoner,
-        soloText,
-        fivesText,
-        top10Text,
-        soloPeak,
-        flexText,
-        flexStats,
-        flexPeak,
-        rankedFivesStats,
-    } = profileData;
+    const { name, account, summoner, soloText, top10Text, soloPeak } =
+        profileData;
 
     // Profile Summary Table
     document
@@ -498,79 +528,6 @@ function appendProfileTableColumns(profileData) {
     document
         .getElementById("row-top10")
         .insertAdjacentHTML("beforeend", `<td>${top10Text}</td>`);
-
-    // S26 Flex Table
-    document
-        .getElementById("row-flex-name")
-        .insertAdjacentHTML("beforeend", `<td><strong>${name}</strong></td>`);
-    document
-        .getElementById("row-flex")
-        .insertAdjacentHTML("beforeend", `<td>${flexText}</td>`);
-    document
-        .getElementById("row-flex-top")
-        .insertAdjacentHTML("beforeend", `<td>${flexStats.TOP || "0"}</td>`);
-    document
-        .getElementById("row-flex-jgl")
-        .insertAdjacentHTML("beforeend", `<td>${flexStats.JGL || "0"}</td>`);
-    document
-        .getElementById("row-flex-mid")
-        .insertAdjacentHTML("beforeend", `<td>${flexStats.MID || "0"}</td>`);
-    document
-        .getElementById("row-flex-bot")
-        .insertAdjacentHTML("beforeend", `<td>${flexStats.BOT || "0"}</td>`);
-    document
-        .getElementById("row-flex-sup")
-        .insertAdjacentHTML("beforeend", `<td>${flexStats.SUP || "0"}</td>`);
-    document
-        .getElementById("row-flex-total")
-        .insertAdjacentHTML("beforeend", `<td>${flexStats.TOTAL || "0"}</td>`);
-    document
-        .getElementById("row-peak-flex")
-        .insertAdjacentHTML("beforeend", `<td>${flexPeak.rankText}</td>`);
-
-    // S26 Ranked 5v5 Table
-    document
-        .getElementById("row-fives-name")
-        .insertAdjacentHTML("beforeend", `<td><strong>${name}</strong></td>`);
-    document
-        .getElementById("row-fives-rank")
-        .insertAdjacentHTML("beforeend", `<td>${fivesText}</td>`);
-    document
-        .getElementById("row-fives-top")
-        .insertAdjacentHTML(
-            "beforeend",
-            `<td>${rankedFivesStats.TOP || "0"}</td>`,
-        );
-    document
-        .getElementById("row-fives-jgl")
-        .insertAdjacentHTML(
-            "beforeend",
-            `<td>${rankedFivesStats.JGL || "0"}</td>`,
-        );
-    document
-        .getElementById("row-fives-mid")
-        .insertAdjacentHTML(
-            "beforeend",
-            `<td>${rankedFivesStats.MID || "0"}</td>`,
-        );
-    document
-        .getElementById("row-fives-bot")
-        .insertAdjacentHTML(
-            "beforeend",
-            `<td>${rankedFivesStats.BOT || "0"}</td>`,
-        );
-    document
-        .getElementById("row-fives-sup")
-        .insertAdjacentHTML(
-            "beforeend",
-            `<td>${rankedFivesStats.SUP || "0"}</td>`,
-        );
-    document
-        .getElementById("row-fives-total")
-        .insertAdjacentHTML(
-            "beforeend",
-            `<td>${rankedFivesStats.TOTAL || "0"}</td>`,
-        );
 }
 
 // Update sorting arrow indicators on table header elements
@@ -610,6 +567,26 @@ function renderProfileLeaderboard() {
         "#leaderboard",
         currentProfileSortKey,
         currentProfileSortAsc,
+    );
+}
+
+// Render S26 Ranked 5s role winrate leaderboard table
+function renderFivesLeaderboard() {
+    const tbody = document.getElementById("fives-leaderboard-body");
+    if (!tbody) return;
+
+    const activeSortKey = getResolvedFivesSortKey(currentFivesSortKey);
+    fivesLeaderboardData.sort((a, b) =>
+        compareValues(a[activeSortKey], b[activeSortKey], currentFivesSortAsc),
+    );
+
+    tbody.innerHTML = fivesLeaderboardData
+        .map(buildFivesLeaderboardRowHtml)
+        .join("");
+    updateHeaderSortArrows(
+        "#fives-leaderboard",
+        currentFivesSortKey,
+        currentFivesSortAsc,
     );
 }
 
@@ -741,6 +718,32 @@ function setupProfileLeaderboardSorting() {
             renderProfileLeaderboard();
         });
     });
+}
+
+// Bind event listeners for 5s leaderboard column headers and view toggles
+function setupFivesLeaderboardSorting() {
+    document
+        .querySelectorAll("#fives-leaderboard th[data-sort]")
+        .forEach((th) => {
+            th.addEventListener("click", () => {
+                const sortKey = th.getAttribute("data-sort");
+                if (currentFivesSortKey === sortKey) {
+                    currentFivesSortAsc = !currentFivesSortAsc;
+                } else {
+                    currentFivesSortKey = sortKey;
+                    currentFivesSortAsc = false;
+                }
+                renderFivesLeaderboard();
+            });
+        });
+
+    const modeSelect = document.getElementById("fives-leaderboard-mode-select");
+    if (modeSelect) {
+        modeSelect.addEventListener("change", (e) => {
+            fivesLeaderboardMode = e.target.value;
+            renderFivesLeaderboard();
+        });
+    }
 }
 
 // Bind event listeners for flex leaderboard column headers and view toggles
@@ -933,13 +936,8 @@ async function fetchPlayerProfile(player) {
         account,
         summoner,
         soloText: formatRank(solo),
-        fivesText: formatRank(fives),
         top10Text,
         soloPeak: formatPeakDisplay(peakData.peakSolo),
-        flexText: formatRank(flex),
-        flexStats,
-        flexPeak: formatPeakDisplay(peakData.peakFlex),
-        rankedFivesStats,
     });
 
     // Accumulate profile summary leaderboard dataset
@@ -953,9 +951,14 @@ async function fetchPlayerProfile(player) {
         playedChampsCount,
     });
 
+    // Accumulate 5s leaderboard dataset
+    fivesLeaderboardData.push(
+        buildFivesLeaderboardEntry(player, fives, rankedFivesStats),
+    );
+
     // Accumulate flex leaderboard dataset
     flexLeaderboardData.push(
-        buildFlexLeaderboardEntry(player, flex, fives, flexStats),
+        buildFlexLeaderboardEntry(player, flex, flexStats),
     );
 
     // Accumulate pings leaderboard dataset
@@ -968,6 +971,7 @@ async function loadAllProfiles() {
 
     clearProfileTables();
     profileLeaderboardData = [];
+    fivesLeaderboardData = [];
     flexLeaderboardData = [];
     pingsLeaderboardData = [];
 
@@ -984,6 +988,7 @@ async function loadAllProfiles() {
 
             await fetchPlayerProfile(player);
             renderProfileLeaderboard();
+            renderFivesLeaderboard();
             renderFlexLeaderboard();
             renderPingsLeaderboard();
         }
@@ -1003,6 +1008,7 @@ document.addEventListener("DOMContentLoaded", () => {
         .addEventListener("click", loadAllProfiles);
     setupViewToggle();
     setupProfileLeaderboardSorting();
+    setupFivesLeaderboardSorting();
     setupFlexLeaderboardSorting();
     setupChampionLeaderboard();
     setupPingsLeaderboardSorting();

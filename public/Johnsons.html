@@ -88,153 +88,78 @@
 
       <!-- FLEX & 5s VIEW -->
       <div id="view-ranked" style="display: none">
-        <!-- Ranked 5v5 Queue -->
-        <h2>S26 Ranked 5v5</h2>
-        <table id="s26-ranked-fives">
-          <tbody>
-            <tr id="row-fives-name">
-              <th>Name</th>
-            </tr>
-            <tr id="row-fives-rank">
-              <th>Current 5v5 Rank</th>
-            </tr>
-            <tr id="row-fives-top">
-              <th>
-                <span class="role-header-content">
-                  <img
-                    src="/images/icons_position/Position_Top.png"
-                    alt="Top"
-                    class="role-icon" />
-                  TOP
-                </span>
-              </th>
-            </tr>
-            <tr id="row-fives-jgl">
-              <th>
-                <span class="role-header-content">
-                  <img
-                    src="/images/icons_position/Position_Jungle.png"
-                    alt="Jungle"
-                    class="role-icon" />
-                  JGL
-                </span>
-              </th>
-            </tr>
-            <tr id="row-fives-mid">
-              <th>
-                <span class="role-header-content">
-                  <img
-                    src="/images/icons_position/Position_Middle.png"
-                    alt="Mid"
-                    class="role-icon" />
-                  MID
-                </span>
-              </th>
-            </tr>
-            <tr id="row-fives-bot">
-              <th>
-                <span class="role-header-content">
-                  <img
-                    src="/images/icons_position/Position_Bottom.png"
-                    alt="Bottom"
-                    class="role-icon" />
-                  BOT
-                </span>
-              </th>
-            </tr>
-            <tr id="row-fives-sup">
-              <th>
-                <span class="role-header-content">
-                  <img
-                    src="/images/icons_position/Position_Support.png"
-                    alt="Support"
-                    class="role-icon" />
-                  SUP
-                </span>
-              </th>
-            </tr>
-            <tr id="row-fives-total">
-              <th>Total</th>
-            </tr>
-          </tbody>
-        </table>
+        <!-- S26 Ranked 5s -->
+        <h2>S26 Ranked 5s</h2>
+        <div id="fives-leaderboard-controls">
+          <label style="cursor: pointer; user-select: none">
+            <strong>Sort by:</strong>
+            <select id="fives-leaderboard-mode-select">
+              <option value="wr" selected>Winrate</option>
+              <option value="games">Games Played</option>
+            </select>
+          </label>
+        </div>
 
-        <!-- Flex Queue -->
-        <h2>S26 Flex Queue</h2>
-        <table id="s26-flex">
-          <tbody>
-            <tr id="row-flex-name">
-              <th>Name</th>
-            </tr>
-            <tr id="row-flex">
-              <th>Current Flex Rank</th>
-            </tr>
-            <tr id="row-flex-top">
-              <th>
+        <table id="fives-leaderboard">
+          <thead>
+            <tr>
+              <th data-sort="name">Name<span class="sort-arrow"></span></th>
+              <th data-sort="fivesScore">
+                5s Rank<span class="sort-arrow"></span>
+              </th>
+              <th data-sort="top">
                 <span class="role-header-content">
                   <img
                     src="/images/icons_position/Position_Top.png"
                     alt="Top"
                     class="role-icon" />
-                  TOP
-                </span>
+                  TOP </span
+                ><span class="sort-arrow"></span>
               </th>
-            </tr>
-            <tr id="row-flex-jgl">
-              <th>
+              <th data-sort="jgl">
                 <span class="role-header-content">
                   <img
                     src="/images/icons_position/Position_Jungle.png"
                     alt="Jungle"
                     class="role-icon" />
-                  JGL
-                </span>
+                  JGL </span
+                ><span class="sort-arrow"></span>
               </th>
-            </tr>
-            <tr id="row-flex-mid">
-              <th>
+              <th data-sort="mid">
                 <span class="role-header-content">
                   <img
                     src="/images/icons_position/Position_Middle.png"
                     alt="Mid"
                     class="role-icon" />
-                  MID
-                </span>
+                  MID </span
+                ><span class="sort-arrow"></span>
               </th>
-            </tr>
-            <tr id="row-flex-bot">
-              <th>
+              <th data-sort="bot">
                 <span class="role-header-content">
                   <img
                     src="/images/icons_position/Position_Bottom.png"
                     alt="Bot"
                     class="role-icon" />
-                  BOT
-                </span>
+                  BOT </span
+                ><span class="sort-arrow"></span>
               </th>
-            </tr>
-            <tr id="row-flex-sup">
-              <th>
+              <th data-sort="sup">
                 <span class="role-header-content">
                   <img
                     src="/images/icons_position/Position_Support.png"
                     alt="Support"
                     class="role-icon" />
-                  SUP
-                </span>
+                  SUP </span
+                ><span class="sort-arrow"></span>
               </th>
+              <th data-sort="total">Total<span class="sort-arrow"></span></th>
             </tr>
-            <tr id="row-flex-total">
-              <th>Total</th>
-            </tr>
-            <tr id="row-peak-flex">
-              <th>Peak Flex Rank</th>
-            </tr>
-          </tbody>
+          </thead>
+          <tbody id="fives-leaderboard-body"></tbody>
         </table>
 
-        <!-- S26 Flex Role Breakdown -->
-        <h2>S26 Flex Role Breakdown</h2>
+        <!-- S26 Ranked Flex -->
+        <h2>S26 Ranked Flex</h2>
         <div id="flex-leaderboard-controls">
           <label style="cursor: pointer; user-select: none">
             <strong>Sort by:</strong>
@@ -251,9 +176,6 @@
               <th data-sort="name">Name<span class="sort-arrow"></span></th>
               <th data-sort="flexScore">
                 Flex Rank<span class="sort-arrow"></span>
-              </th>
-              <th data-sort="fivesScore">
-                5s Rank<span class="sort-arrow"></span>
               </th>
               <th data-sort="top">
                 <span class="role-header-content">

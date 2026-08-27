@@ -118,11 +118,9 @@ const PROFILE_TABLE_ROW_IDS = [
     "row-player",
     "row-level",
     "row-solo",
-    "row-top5",
-    "row-champs",
-    "row-points",
     "row-peak-solo",
     "row-peak-solo-games",
+    "row-top10",
     "row-flex-name",
     "row-flex",
     "row-flex-top",
@@ -147,10 +145,14 @@ const PROFILE_TABLE_ROW_IDS = [
 let championMap = {};
 let totalChampionCount = 0;
 
-let leaderboardData = [];
-let leaderboardMode = "wr";
-let currentSortKey = "soloScore";
-let currentSortAsc = false;
+let profileLeaderboardData = [];
+let currentProfileSortKey = "soloScore";
+let currentProfileSortAsc = false;
+
+let flexLeaderboardData = [];
+let flexLeaderboardMode = "wr";
+let currentFlexSortKey = "flexScore";
+let currentFlexSortAsc = false;
 
 let championLeaderboardData = [];
 let championLeaderboardMode = "wr";
@@ -259,43 +261,54 @@ function formatPingValue(num, isTotalMode) {
 }
 
 // Resolve active column sort key based on current winrate vs games view mode
-function getResolvedSortKey(key) {
+function getResolvedFlexSortKey(key) {
     const roleMap = {
-        top: leaderboardMode === "games" ? "topGames" : "topWr",
-        jgl: leaderboardMode === "games" ? "jglGames" : "jglWr",
-        mid: leaderboardMode === "games" ? "midGames" : "midWr",
-        bot: leaderboardMode === "games" ? "botGames" : "botWr",
-        sup: leaderboardMode === "games" ? "supGames" : "supWr",
-        total: leaderboardMode === "games" ? "totalGames" : "totalWr",
+        top: flexLeaderboardMode === "games" ? "topGames" : "topWr",
+        jgl: flexLeaderboardMode === "games" ? "jglGames" : "jglWr",
+        mid: flexLeaderboardMode === "games" ? "midGames" : "midWr",
+        bot: flexLeaderboardMode === "games" ? "botGames" : "botWr",
+        sup: flexLeaderboardMode === "games" ? "supGames" : "supWr",
+        total: flexLeaderboardMode === "games" ? "totalGames" : "totalWr",
     };
     return roleMap[key] || key;
 }
 
 /* HTML BUILDERS & DATA MAPPERS */
 
-// Build top 5 mastery icon and level HTML snippet
-function buildTop5MasteryHtml(masteries) {
+// Build top 10 mastery icon and level HTML snippet
+function buildTop10MasteryHtml(masteries) {
     return (masteries || [])
-        .slice(0, 5)
+        .slice(0, 10)
         .map((m) => {
             const champName =
                 championMap[m.championId] || `Champ ${m.championId}`;
             const champIconUrl = getChampIconUrl(champName);
             const pts = formatPoints(m.championPoints);
-            return `<div class="top5-item"><img src="${champIconUrl}" alt="${champName}" title="${champName}" data-champ-id="${m.championId}" class="top5-champ-icon" /><span>${pts} (${m.championLevel})</span></div>`;
+            return `<div class="top10-item"><img src="${champIconUrl}" alt="${champName}" title="${champName}" data-champ-id="${m.championId}" class="top10-champ-icon" /><span>${pts} (${m.championLevel})</span></div>`;
         })
         .join("");
 }
 
-// Generate an HTML table row for the general leaderboard
-function buildLeaderboardRowHtml(p) {
+// Generate an HTML table row for the general profile leaderboard
+function buildProfileLeaderboardRowHtml(p) {
     return `
         <tr>
             <td><strong>${p.name}</strong></td>
             <td>${p.soloHtml}</td>
+            <td>${p.masteryText}</td>
+            <td>${p.level}</td>
+            <td>${p.playedChampsCount}</td>
+        </tr>
+    `;
+}
+
+// Generate an HTML table row for the S26 Flex role leaderboard
+function buildFlexLeaderboardRowHtml(p) {
+    return `
+        <tr>
+            <td><strong>${p.name}</strong></td>
             <td>${p.flexHtml}</td>
             <td>${p.fivesHtml}</td>
-            <td>${p.masteryText}</td>
             <td>${p.topText}</td>
             <td>${p.jglText}</td>
             <td>${p.midText}</td>
@@ -369,26 +382,14 @@ function buildPingsLeaderboardEntry(player, flexStats) {
     };
 }
 
-// Build leaderboard row object containing sortable and display fields
-function buildLeaderboardEntry(
-    player,
-    solo,
-    flex,
-    fives,
-    totalPoints,
-    totalPointsText,
-    flexStats,
-) {
+// Build leaderboard row object containing sortable and display fields for Flex
+function buildFlexLeaderboardEntry(player, flex, fives, flexStats) {
     return {
         name: player.name,
-        soloScore: getRankScore(solo),
-        soloHtml: formatRank(solo),
         flexScore: getRankScore(flex),
         flexHtml: formatRank(flex),
         fivesScore: getRankScore(fives),
         fivesHtml: formatRank(fives),
-        masteryPoints: totalPoints,
-        masteryText: totalPointsText,
         topWr: parseWinrate(flexStats.TOP),
         topGames: parseGamesCount(flexStats.TOP),
         topText: flexStats.TOP || "0",
@@ -438,7 +439,7 @@ function summarizeMasteryData(masteries) {
         totalPointsText: `${totalPoints.toLocaleString()} (${totalMasteryLevel})`,
         playedChampsCount: masteryList.filter((m) => m.championLevel > 0)
             .length,
-        top5Text: buildTop5MasteryHtml(masteryList),
+        top10Text: buildTop10MasteryHtml(masteryList),
     };
 }
 
@@ -464,9 +465,7 @@ function appendProfileTableColumns(profileData) {
         summoner,
         soloText,
         fivesText,
-        top5Text,
-        playedChampsCount,
-        totalPointsText,
+        top10Text,
         soloPeak,
         flexText,
         flexStats,
@@ -491,20 +490,14 @@ function appendProfileTableColumns(profileData) {
         .getElementById("row-solo")
         .insertAdjacentHTML("beforeend", `<td>${soloText}</td>`);
     document
-        .getElementById("row-top5")
-        .insertAdjacentHTML("beforeend", `<td>${top5Text}</td>`);
-    document
-        .getElementById("row-champs")
-        .insertAdjacentHTML("beforeend", `<td>${playedChampsCount}</td>`);
-    document
-        .getElementById("row-points")
-        .insertAdjacentHTML("beforeend", `<td>${totalPointsText}</td>`);
-    document
         .getElementById("row-peak-solo")
         .insertAdjacentHTML("beforeend", `<td>${soloPeak.rankText}</td>`);
     document
         .getElementById("row-peak-solo-games")
         .insertAdjacentHTML("beforeend", `<td>${soloPeak.gamesText}</td>`);
+    document
+        .getElementById("row-top10")
+        .insertAdjacentHTML("beforeend", `<td>${top10Text}</td>`);
 
     // S26 Flex Table
     document
@@ -597,18 +590,47 @@ function updateHeaderSortArrows(tableSelector, activeSortKey, isAscending) {
         });
 }
 
-// Render winrate/games rank leaderboard table
-function renderLeaderboard() {
+// Render profile summary leaderboard table
+function renderProfileLeaderboard() {
     const tbody = document.getElementById("leaderboard-body");
     if (!tbody) return;
 
-    const activeSortKey = getResolvedSortKey(currentSortKey);
-    leaderboardData.sort((a, b) =>
-        compareValues(a[activeSortKey], b[activeSortKey], currentSortAsc),
+    profileLeaderboardData.sort((a, b) =>
+        compareValues(
+            a[currentProfileSortKey],
+            b[currentProfileSortKey],
+            currentProfileSortAsc,
+        ),
     );
 
-    tbody.innerHTML = leaderboardData.map(buildLeaderboardRowHtml).join("");
-    updateHeaderSortArrows("#leaderboard", currentSortKey, currentSortAsc);
+    tbody.innerHTML = profileLeaderboardData
+        .map(buildProfileLeaderboardRowHtml)
+        .join("");
+    updateHeaderSortArrows(
+        "#leaderboard",
+        currentProfileSortKey,
+        currentProfileSortAsc,
+    );
+}
+
+// Render S26 Flex role winrate leaderboard table
+function renderFlexLeaderboard() {
+    const tbody = document.getElementById("flex-leaderboard-body");
+    if (!tbody) return;
+
+    const activeSortKey = getResolvedFlexSortKey(currentFlexSortKey);
+    flexLeaderboardData.sort((a, b) =>
+        compareValues(a[activeSortKey], b[activeSortKey], currentFlexSortAsc),
+    );
+
+    tbody.innerHTML = flexLeaderboardData
+        .map(buildFlexLeaderboardRowHtml)
+        .join("");
+    updateHeaderSortArrows(
+        "#flex-leaderboard",
+        currentFlexSortKey,
+        currentFlexSortAsc,
+    );
 }
 
 // Render champion-specific winrate/games leaderboard table
@@ -681,26 +703,68 @@ function renderPingsLeaderboard() {
 
 /* EVENT HANDLERS & DOM BINDINGS */
 
-// Bind event listeners for leaderboard column headers and view toggles
-function setupLeaderboardSorting() {
+// Bind view toggle button listeners
+function setupViewToggle() {
+    const profilesBtn = document.getElementById("tab-profiles-btn");
+    const rankedBtn = document.getElementById("tab-ranked-btn");
+    const profilesView = document.getElementById("view-profiles");
+    const rankedView = document.getElementById("view-ranked");
+
+    if (!profilesBtn || !rankedBtn || !profilesView || !rankedView) return;
+
+    profilesBtn.addEventListener("click", () => {
+        profilesBtn.classList.add("active");
+        rankedBtn.classList.remove("active");
+        profilesView.style.display = "block";
+        rankedView.style.display = "none";
+    });
+
+    rankedBtn.addEventListener("click", () => {
+        rankedBtn.classList.add("active");
+        profilesBtn.classList.remove("active");
+        rankedView.style.display = "block";
+        profilesView.style.display = "none";
+    });
+}
+
+// Bind event listeners for profile leaderboard column headers
+function setupProfileLeaderboardSorting() {
     document.querySelectorAll("#leaderboard th[data-sort]").forEach((th) => {
         th.addEventListener("click", () => {
             const sortKey = th.getAttribute("data-sort");
-            if (currentSortKey === sortKey) {
-                currentSortAsc = !currentSortAsc;
+            if (currentProfileSortKey === sortKey) {
+                currentProfileSortAsc = !currentProfileSortAsc;
             } else {
-                currentSortKey = sortKey;
-                currentSortAsc = false;
+                currentProfileSortKey = sortKey;
+                currentProfileSortAsc = false;
             }
-            renderLeaderboard();
+            renderProfileLeaderboard();
         });
     });
+}
 
-    const modeSelect = document.getElementById("leaderboard-mode-select");
+// Bind event listeners for flex leaderboard column headers and view toggles
+function setupFlexLeaderboardSorting() {
+    document
+        .querySelectorAll("#flex-leaderboard th[data-sort]")
+        .forEach((th) => {
+            th.addEventListener("click", () => {
+                const sortKey = th.getAttribute("data-sort");
+                if (currentFlexSortKey === sortKey) {
+                    currentFlexSortAsc = !currentFlexSortAsc;
+                } else {
+                    currentFlexSortKey = sortKey;
+                    currentFlexSortAsc = false;
+                }
+                renderFlexLeaderboard();
+            });
+        });
+
+    const modeSelect = document.getElementById("flex-leaderboard-mode-select");
     if (modeSelect) {
         modeSelect.addEventListener("change", (e) => {
-            leaderboardMode = e.target.value;
-            renderLeaderboard();
+            flexLeaderboardMode = e.target.value;
+            renderFlexLeaderboard();
         });
     }
 }
@@ -749,28 +813,28 @@ function setupChampIconHighlighting() {
     if (!table) return;
 
     table.addEventListener("mouseover", (e) => {
-        const target = e.target.closest(".top5-champ-icon");
+        const target = e.target.closest(".top10-champ-icon");
         if (!target) return;
 
         const champId = target.dataset.champId;
         if (!champId) return;
 
         document
-            .querySelectorAll(`.top5-champ-icon[data-champ-id="${champId}"]`)
+            .querySelectorAll(`.top10-champ-icon[data-champ-id="${champId}"]`)
             .forEach((el) => {
                 el.classList.add("champ-highlighted");
             });
     });
 
     table.addEventListener("mouseout", (e) => {
-        const target = e.target.closest(".top5-champ-icon");
+        const target = e.target.closest(".top10-champ-icon");
         if (!target) return;
 
         const champId = target.dataset.champId;
         if (!champId) return;
 
         document
-            .querySelectorAll(`.top5-champ-icon[data-champ-id="${champId}"]`)
+            .querySelectorAll(`.top10-champ-icon[data-champ-id="${champId}"]`)
             .forEach((el) => {
                 el.classList.remove("champ-highlighted");
             });
@@ -787,7 +851,7 @@ async function initChampionData() {
 
         const headerEl = document.getElementById("header-champs");
         if (headerEl) {
-            headerEl.innerText = `Mastery Champions (out of ${totalChampionCount})`;
+            headerEl.innerHTML = `Mastery Champions (out of ${totalChampionCount})<span class="sort-arrow"></span>`;
         }
 
         const championSelect = document.getElementById("champion-select");
@@ -858,7 +922,7 @@ async function fetchPlayerProfile(player) {
         ]);
 
     const { solo, flex, fives } = extractQueueEntries(ranked);
-    const { totalPoints, totalPointsText, playedChampsCount, top5Text } =
+    const { totalPoints, totalPointsText, playedChampsCount, top10Text } =
         summarizeMasteryData(masteries);
 
     const peakData = await syncAndFetchPlayerPeaks(player.puuid, solo, flex);
@@ -870,9 +934,7 @@ async function fetchPlayerProfile(player) {
         summoner,
         soloText: formatRank(solo),
         fivesText: formatRank(fives),
-        top5Text,
-        playedChampsCount,
-        totalPointsText,
+        top10Text,
         soloPeak: formatPeakDisplay(peakData.peakSolo),
         flexText: formatRank(flex),
         flexStats,
@@ -880,19 +942,23 @@ async function fetchPlayerProfile(player) {
         rankedFivesStats,
     });
 
-    // Accumulate leaderboard datasets
-    leaderboardData.push(
-        buildLeaderboardEntry(
-            player,
-            solo,
-            flex,
-            fives,
-            totalPoints,
-            totalPointsText,
-            flexStats,
-        ),
+    // Accumulate profile summary leaderboard dataset
+    profileLeaderboardData.push({
+        name: player.name,
+        soloScore: getRankScore(solo),
+        soloHtml: formatRank(solo),
+        masteryPoints: totalPoints,
+        masteryText: totalPointsText,
+        level: summoner.summonerLevel || 0,
+        playedChampsCount,
+    });
+
+    // Accumulate flex leaderboard dataset
+    flexLeaderboardData.push(
+        buildFlexLeaderboardEntry(player, flex, fives, flexStats),
     );
 
+    // Accumulate pings leaderboard dataset
     pingsLeaderboardData.push(buildPingsLeaderboardEntry(player, flexStats));
 }
 
@@ -901,8 +967,8 @@ async function loadAllProfiles() {
     const statusMsg = document.getElementById("status-msg");
 
     clearProfileTables();
-
-    leaderboardData = [];
+    profileLeaderboardData = [];
+    flexLeaderboardData = [];
     pingsLeaderboardData = [];
 
     try {
@@ -917,7 +983,8 @@ async function loadAllProfiles() {
             statusMsg.innerText = `Loading (${i + 1}/${PLAYERS.length}): ${player.name}...`;
 
             await fetchPlayerProfile(player);
-            renderLeaderboard();
+            renderProfileLeaderboard();
+            renderFlexLeaderboard();
             renderPingsLeaderboard();
         }
 
@@ -934,7 +1001,9 @@ document.addEventListener("DOMContentLoaded", () => {
     document
         .getElementById("load-all-btn")
         .addEventListener("click", loadAllProfiles);
-    setupLeaderboardSorting();
+    setupViewToggle();
+    setupProfileLeaderboardSorting();
+    setupFlexLeaderboardSorting();
     setupChampionLeaderboard();
     setupPingsLeaderboardSorting();
     setupChampIconHighlighting();

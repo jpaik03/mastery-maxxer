@@ -1,3 +1,24 @@
+h1 {
+  text-align: center;
+}
+
+h2 {
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+#controls {
+  display: flex;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+#status-msg {
+  margin-top: 10px;
+  font-weight: bold;
+  text-align: center;
+}
+
 table {
   border-collapse: collapse;
   width: 100%;
@@ -36,12 +57,18 @@ td {
   min-width: 95px;
 }
 
-#row-top5 td {
-  padding: 6px 4px;
-  vertical-align: middle;
+tr:not(#row-top10) th,
+tr:not(#row-top10) td {
+  height: 24px;
+  box-sizing: border-box;
 }
 
-.top5-item {
+#row-top10 th,
+#row-top10 td {
+  height: auto;
+}
+
+.top10-item {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -50,17 +77,17 @@ td {
   font-size: 10px;
 }
 
-.top5-item:last-child {
+.top10-item:last-child {
   margin-bottom: 0;
 }
 
-.top5-champ-icon {
-  width: 18px !important;
-  height: 18px !important;
-  min-width: 18px !important;
-  min-height: 18px !important;
-  max-width: 18px !important;
-  max-height: 18px !important;
+.top10-champ-icon {
+  width: 24px !important;
+  height: 24px !important;
+  min-width: 24px !important;
+  min-height: 24px !important;
+  max-width: 24px !important;
+  max-height: 24px !important;
   border-radius: 0;
   display: inline-block;
   object-fit: cover;
@@ -116,12 +143,21 @@ tbody th .role-header-content {
 }
 
 #leaderboard {
-  width: 85%;
+  width: 40%;
   margin-top: 10px;
   margin-bottom: 30px;
 }
 
-#leaderboard thead th {
+#leaderboard th#header-champs {
+  width: 32%;
+}
+
+#leaderboard th:not(#header-champs) {
+  width: 17%;
+}
+
+#leaderboard thead th,
+#flex-leaderboard thead th {
   background-color: #e9ecef;
   cursor: pointer;
   user-select: none;
@@ -130,16 +166,44 @@ tbody th .role-header-content {
   font-weight: 600;
 }
 
-#leaderboard thead th:hover {
+#leaderboard thead th:hover,
+#flex-leaderboard thead th:hover {
   background-color: #dfe3e6;
 }
 
-#leaderboard-controls {
+#flex-leaderboard {
+  width: 70%;
+  margin-top: 10px;
+  margin-bottom: 30px;
+}
+
+#champion-controls,
+#flex-leaderboard-controls,
+#leaderboard-controls,
+#pings-controls {
   display: flex;
   justify-content: center;
   align-items: center;
   margin-bottom: 10px;
   font-size: 11px;
+}
+
+#champion-select {
+  margin: 0 12px 0 6px;
+  padding: 2px 6px;
+  font-size: 11px;
+}
+
+#champion-mode-select,
+#flex-leaderboard-mode-select,
+#pings-mode-select {
+  margin-left: 6px;
+  padding: 2px 6px;
+  font-size: 11px;
+}
+
+#champion-status {
+  margin-left: 10px;
 }
 
 #pings-leaderboard {
@@ -162,18 +226,39 @@ tbody th .role-header-content {
   background-color: #dfe3e6;
 }
 
-#leaderboard-controls,
-#pings-controls {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-bottom: 10px;
-  font-size: 11px;
-}
-
 .sort-arrow {
   display: inline-block;
   font-size: 9px;
   margin-left: 2px;
   color: #666;
+}
+
+#view-toggle-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 0;
+}
+
+.view-toggle-btn {
+  padding: 6px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  border: 1px solid #ccc;
+  background-color: #f7f7f7;
+  color: #444;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.view-toggle-btn:hover {
+  background-color: #e9ecef;
+}
+
+.view-toggle-btn.active {
+  background-color: #1a5fb4;
+  color: #fff;
+  border-color: #1a5fb4;
 }

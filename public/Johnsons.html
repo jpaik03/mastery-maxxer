@@ -11,453 +11,445 @@
   <body>
     <h1>Johnsons</h1>
 
+    <!-- View Toggle Tabs -->
+    <div id="view-toggle-container">
+      <button
+        type="button"
+        id="tab-profiles-btn"
+        class="view-toggle-btn active">
+        Profiles
+      </button>
+      <button type="button" id="tab-ranked-btn" class="view-toggle-btn">
+        Flex & 5s
+      </button>
+    </div>
+
+    <!-- Refresh Action Button -->
     <div id="controls">
       <button type="button" id="load-all-btn">Refresh All Profiles</button>
     </div>
 
-    <div id="status-msg" style="margin-top: 10px; font-weight: bold"></div>
+    <div id="status-msg"></div>
 
-    <div style="overflow-x: auto; margin-top: 20px">
-      <!-- Profile Summary -->
+    <div style="overflow-x: auto">
+      <!-- PROFILES VIEW -->
+      <div id="view-profiles">
+        <!-- Profile Summary -->
+        <h2>Profiles</h2>
+        <table id="profile-summary">
+          <tbody>
+            <tr id="row-name">
+              <th>Name</th>
+            </tr>
+            <tr id="row-player">
+              <th>Player</th>
+            </tr>
+            <tr id="row-level">
+              <th>Level</th>
+            </tr>
+            <tr id="row-solo">
+              <th>Current Solo/Duo Rank</th>
+            </tr>
+            <tr id="row-peak-solo">
+              <th>Peak Solo/Duo Rank</th>
+            </tr>
+            <tr id="row-peak-solo-games">
+              <th>Solo/Duo Games (Peak Season)</th>
+            </tr>
+            <tr id="row-top10">
+              <th>Top 10 Mastery</th>
+            </tr>
+          </tbody>
+        </table>
 
-      <table id="profile-summary">
-        <tbody>
-          <tr id="row-name">
-            <th>Name</th>
-          </tr>
-          <tr id="row-player">
-            <th>Player</th>
-          </tr>
-          <tr id="row-level">
-            <th>Level</th>
-          </tr>
-          <tr id="row-solo">
-            <th>Current Solo/Duo Rank</th>
-          </tr>
-          <tr id="row-top5">
-            <th>Top 5 Mastery</th>
-          </tr>
-          <tr id="row-champs">
-            <th id="header-champs">Mastery Champions</th>
-          </tr>
-          <tr id="row-points">
-            <th>Total Mastery Points</th>
-          </tr>
-          <tr id="row-peak-solo">
-            <th>Peak Solo/Duo Rank</th>
-          </tr>
-          <tr id="row-peak-solo-games">
-            <th>Solo/Duo Games (Peak Season)</th>
-          </tr>
-        </tbody>
-      </table>
-      
-      <!-- Ranked 5v5 Queue -->
-
-      <h2>S26 Ranked 5v5</h2>
-
-      <table id="s26-ranked-fives">
-        <tbody>
-          <tr id="row-fives-name">
-            <th>Name</th>
-          </tr>
-
-          <tr id="row-fives-rank">
-            <th>Current 5v5 Rank</th>
-          </tr>
-
-          <tr id="row-fives-top">
-            <th>
-              <span class="role-header-content">
-                <img
-                  src="/images/icons_position/Position_Top.png"
-                  alt="Top"
-                  class="role-icon"
-                />
-                TOP
-              </span>
-            </th>
-          </tr>
-
-          <tr id="row-fives-jgl">
-            <th>
-              <span class="role-header-content">
-                <img
-                  src="/images/icons_position/Position_Jungle.png"
-                  alt="Jungle"
-                  class="role-icon"
-                />
-                JGL
-              </span>
-            </th>
-          </tr>
-
-          <tr id="row-fives-mid">
-            <th>
-              <span class="role-header-content">
-                <img
-                  src="/images/icons_position/Position_Middle.png"
-                  alt="Mid"
-                  class="role-icon"
-                />
-                MID
-              </span>
-            </th>
-          </tr>
-
-          <tr id="row-fives-bot">
-            <th>
-              <span class="role-header-content">
-                <img
-                  src="/images/icons_position/Position_Bottom.png"
-                  alt="Bottom"
-                  class="role-icon"
-                />
-                BOT
-              </span>
-            </th>
-          </tr>
-
-          <tr id="row-fives-sup">
-            <th>
-              <span class="role-header-content">
-                <img
-                  src="/images/icons_position/Position_Support.png"
-                  alt="Support"
-                  class="role-icon"
-                />
-                SUP
-              </span>
-            </th>
-          </tr>
-
-          <tr id="row-fives-total">
-            <th>Total</th>
-          </tr>
-        </tbody>
-      </table>
-
-      <!-- Flex Queue -->
-
-      <h2>S26 Flex Queue</h2>
-
-      <table id="s26-flex">
-        <tbody>
-          <tr id="row-flex-name">
-            <th>Name</th>
-          </tr>
-          <tr id="row-flex">
-            <th>Current Flex Rank</th>
-          </tr>
-          <tr id="row-flex-top">
-            <th>
-              <span class="role-header-content"
-                ><img
-                  src="/images/icons_position/Position_Top.png"
-                  alt="Top"
-                  class="role-icon" />TOP</span
-              >
-            </th>
-          </tr>
-          <tr id="row-flex-jgl">
-            <th>
-              <span class="role-header-content"
-                ><img
-                  src="/images/icons_position/Position_Jungle.png"
-                  alt="Jungle"
-                  class="role-icon" />JGL</span
-              >
-            </th>
-          </tr>
-          <tr id="row-flex-mid">
-            <th>
-              <span class="role-header-content"
-                ><img
-                  src="/images/icons_position/Position_Middle.png"
-                  alt="Mid"
-                  class="role-icon" />MID</span
-              >
-            </th>
-          </tr>
-          <tr id="row-flex-bot">
-            <th>
-              <span class="role-header-content"
-                ><img
-                  src="/images/icons_position/Position_Bottom.png"
-                  alt="Bot"
-                  class="role-icon" />BOT</span
-              >
-            </th>
-          </tr>
-          <tr id="row-flex-sup">
-            <th>
-              <span class="role-header-content"
-                ><img
-                  src="/images/icons_position/Position_Support.png"
-                  alt="Support"
-                  class="role-icon" />SUP</span
-              >
-            </th>
-          </tr>
-          <tr id="row-flex-total">
-            <th>Total</th>
-          </tr>
-          <tr id="row-peak-flex">
-            <th>Peak Flex Rank</th>
-          </tr>
-        </tbody>
-      </table>
-      
-      <!-- Champion Leaderboard -->
-
-      <h2>Champion Win Rate Leaderboard</h2>
-
-      <div style="margin-bottom: 10px; font-size: 11px">
-        <label>
-          <strong>Champion:</strong>
-
-          <select
-            id="champion-select"
-            style="
-              margin: 0 12px 0 6px;
-              padding: 2px 6px;
-              font-size: 11px;
-            "
-          ></select>
-        </label>
-
-        <label>
-          <strong>Rank by:</strong>
-
-          <select
-            id="champion-mode-select"
-            style="
-              margin-left: 6px;
-              padding: 2px 6px;
-              font-size: 11px;
-            "
-          >
-            <option value="wr" selected>Win Rate</option>
-            <option value="games">Games Played</option>
-          </select>
-        </label>
-
-        <span
-          id="champion-status"
-          style="margin-left: 10px"
-        ></span>
+        <!-- Profile Leaderboard -->
+        <h2>Leaderboard</h2>
+        <table id="leaderboard">
+          <thead>
+            <tr>
+              <th data-sort="name">Name<span class="sort-arrow"></span></th>
+              <th data-sort="soloScore">
+                Solo/Duo Rank<span class="sort-arrow"></span>
+              </th>
+              <th data-sort="masteryPoints">
+                Total Mastery<span class="sort-arrow"></span>
+              </th>
+              <th data-sort="level">
+                Summoner Level<span class="sort-arrow"></span>
+              </th>
+              <th data-sort="playedChampsCount" id="header-champs">
+                Mastery Champions<span class="sort-arrow"></span>
+              </th>
+            </tr>
+          </thead>
+          <tbody id="leaderboard-body"></tbody>
+        </table>
       </div>
 
-      <table id="champion-leaderboard">
-        <thead>
-          <tr>
-            <th>Rank</th>
-            <th>Player</th>
-            <th>W-L</th>
-            <th>Win Rate</th>
-            <th>Games</th>
-          </tr>
-        </thead>
+      <!-- FLEX & 5s VIEW -->
+      <div id="view-ranked" style="display: none">
+        <!-- Ranked 5v5 Queue -->
+        <h2>S26 Ranked 5v5</h2>
+        <table id="s26-ranked-fives">
+          <tbody>
+            <tr id="row-fives-name">
+              <th>Name</th>
+            </tr>
+            <tr id="row-fives-rank">
+              <th>Current 5v5 Rank</th>
+            </tr>
+            <tr id="row-fives-top">
+              <th>
+                <span class="role-header-content">
+                  <img
+                    src="/images/icons_position/Position_Top.png"
+                    alt="Top"
+                    class="role-icon" />
+                  TOP
+                </span>
+              </th>
+            </tr>
+            <tr id="row-fives-jgl">
+              <th>
+                <span class="role-header-content">
+                  <img
+                    src="/images/icons_position/Position_Jungle.png"
+                    alt="Jungle"
+                    class="role-icon" />
+                  JGL
+                </span>
+              </th>
+            </tr>
+            <tr id="row-fives-mid">
+              <th>
+                <span class="role-header-content">
+                  <img
+                    src="/images/icons_position/Position_Middle.png"
+                    alt="Mid"
+                    class="role-icon" />
+                  MID
+                </span>
+              </th>
+            </tr>
+            <tr id="row-fives-bot">
+              <th>
+                <span class="role-header-content">
+                  <img
+                    src="/images/icons_position/Position_Bottom.png"
+                    alt="Bottom"
+                    class="role-icon" />
+                  BOT
+                </span>
+              </th>
+            </tr>
+            <tr id="row-fives-sup">
+              <th>
+                <span class="role-header-content">
+                  <img
+                    src="/images/icons_position/Position_Support.png"
+                    alt="Support"
+                    class="role-icon" />
+                  SUP
+                </span>
+              </th>
+            </tr>
+            <tr id="row-fives-total">
+              <th>Total</th>
+            </tr>
+          </tbody>
+        </table>
 
-        <tbody id="champion-leaderboard-body"></tbody>
-      </table>
-      <!-- Leaderboard -->
+        <!-- Flex Queue -->
+        <h2>S26 Flex Queue</h2>
+        <table id="s26-flex">
+          <tbody>
+            <tr id="row-flex-name">
+              <th>Name</th>
+            </tr>
+            <tr id="row-flex">
+              <th>Current Flex Rank</th>
+            </tr>
+            <tr id="row-flex-top">
+              <th>
+                <span class="role-header-content">
+                  <img
+                    src="/images/icons_position/Position_Top.png"
+                    alt="Top"
+                    class="role-icon" />
+                  TOP
+                </span>
+              </th>
+            </tr>
+            <tr id="row-flex-jgl">
+              <th>
+                <span class="role-header-content">
+                  <img
+                    src="/images/icons_position/Position_Jungle.png"
+                    alt="Jungle"
+                    class="role-icon" />
+                  JGL
+                </span>
+              </th>
+            </tr>
+            <tr id="row-flex-mid">
+              <th>
+                <span class="role-header-content">
+                  <img
+                    src="/images/icons_position/Position_Middle.png"
+                    alt="Mid"
+                    class="role-icon" />
+                  MID
+                </span>
+              </th>
+            </tr>
+            <tr id="row-flex-bot">
+              <th>
+                <span class="role-header-content">
+                  <img
+                    src="/images/icons_position/Position_Bottom.png"
+                    alt="Bot"
+                    class="role-icon" />
+                  BOT
+                </span>
+              </th>
+            </tr>
+            <tr id="row-flex-sup">
+              <th>
+                <span class="role-header-content">
+                  <img
+                    src="/images/icons_position/Position_Support.png"
+                    alt="Support"
+                    class="role-icon" />
+                  SUP
+                </span>
+              </th>
+            </tr>
+            <tr id="row-flex-total">
+              <th>Total</th>
+            </tr>
+            <tr id="row-peak-flex">
+              <th>Peak Flex Rank</th>
+            </tr>
+          </tbody>
+        </table>
 
-      <h2>Leaderboard</h2>
+        <!-- S26 Flex Role Breakdown -->
+        <h2>S26 Flex Role Breakdown</h2>
+        <div id="flex-leaderboard-controls">
+          <label style="cursor: pointer; user-select: none">
+            <strong>Sort by:</strong>
+            <select id="flex-leaderboard-mode-select">
+              <option value="wr" selected>Winrate</option>
+              <option value="games">Games Played</option>
+            </select>
+          </label>
+        </div>
 
-      <div
-        id="leaderboard-controls"
-        style="margin-bottom: 10px; font-size: 11px">
-        <label style="cursor: pointer; user-select: none">
-          <strong>Sort by:</strong>
-          <select
-            id="leaderboard-mode-select"
-            style="margin-left: 6px; padding: 2px 6px; font-size: 11px">
-            <option value="wr" selected>Winrate</option>
-            <option value="games">Games Played</option>
-          </select>
-        </label>
+        <table id="flex-leaderboard">
+          <thead>
+            <tr>
+              <th data-sort="name">Name<span class="sort-arrow"></span></th>
+              <th data-sort="flexScore">
+                Flex Rank<span class="sort-arrow"></span>
+              </th>
+              <th data-sort="fivesScore">
+                5s Rank<span class="sort-arrow"></span>
+              </th>
+              <th data-sort="top">
+                <span class="role-header-content">
+                  <img
+                    src="/images/icons_position/Position_Top.png"
+                    alt="Top"
+                    class="role-icon" />
+                  TOP </span
+                ><span class="sort-arrow"></span>
+              </th>
+              <th data-sort="jgl">
+                <span class="role-header-content">
+                  <img
+                    src="/images/icons_position/Position_Jungle.png"
+                    alt="Jungle"
+                    class="role-icon" />
+                  JGL </span
+                ><span class="sort-arrow"></span>
+              </th>
+              <th data-sort="mid">
+                <span class="role-header-content">
+                  <img
+                    src="/images/icons_position/Position_Middle.png"
+                    alt="Mid"
+                    class="role-icon" />
+                  MID </span
+                ><span class="sort-arrow"></span>
+              </th>
+              <th data-sort="bot">
+                <span class="role-header-content">
+                  <img
+                    src="/images/icons_position/Position_Bottom.png"
+                    alt="Bot"
+                    class="role-icon" />
+                  BOT </span
+                ><span class="sort-arrow"></span>
+              </th>
+              <th data-sort="sup">
+                <span class="role-header-content">
+                  <img
+                    src="/images/icons_position/Position_Support.png"
+                    alt="Support"
+                    class="role-icon" />
+                  SUP </span
+                ><span class="sort-arrow"></span>
+              </th>
+              <th data-sort="total">Total<span class="sort-arrow"></span></th>
+            </tr>
+          </thead>
+          <tbody id="flex-leaderboard-body"></tbody>
+        </table>
+
+        <!-- Champion Win Rate Leaderboard (Flex & 5v5 Combined) -->
+        <h2>Champion Win Rate Leaderboard (Flex & 5v5 Combined)</h2>
+        <div id="champion-controls">
+          <label>
+            <strong>Champion:</strong>
+            <select id="champion-select"></select>
+          </label>
+          <label>
+            <strong>Rank by:</strong>
+            <select id="champion-mode-select">
+              <option value="wr" selected>Win Rate</option>
+              <option value="games">Games Played</option>
+            </select>
+          </label>
+          <span id="champion-status"></span>
+        </div>
+
+        <table id="champion-leaderboard">
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Player</th>
+              <th>W-L</th>
+              <th>Win Rate</th>
+              <th>Games</th>
+            </tr>
+          </thead>
+          <tbody id="champion-leaderboard-body"></tbody>
+        </table>
+
+        <!-- Ping Chart -->
+        <h2>Stop pinging me (S26 Flex)</h2>
+        <div id="pings-controls">
+          <label style="cursor: pointer; user-select: none">
+            <strong>Display:</strong>
+            <select id="pings-mode-select">
+              <option value="avg" selected>Average per Game</option>
+              <option value="total">Total Pings</option>
+            </select>
+          </label>
+        </div>
+
+        <table id="pings-leaderboard">
+          <thead>
+            <tr>
+              <th data-sort="name">Name<span class="sort-arrow"></span></th>
+              <th data-sort="allIn">
+                <span class="role-header-content"
+                  ><img
+                    src="/images/icons_ping/Ping_AllIn.png"
+                    alt="All In"
+                    title="All In"
+                    class="role-icon" /></span
+                ><span class="sort-arrow"></span>
+              </th>
+              <th data-sort="assistMe">
+                <span class="role-header-content"
+                  ><img
+                    src="/images/icons_ping/Ping_AssistMe.png"
+                    alt="Assist Me"
+                    title="Assist Me"
+                    class="role-icon" /></span
+                ><span class="sort-arrow"></span>
+              </th>
+              <th data-sort="basic">
+                <span class="role-header-content"
+                  ><img
+                    src="/images/icons_ping/Ping_Ping.png"
+                    alt="Basic (Alt+Click)"
+                    title="Basic (Alt+Click)"
+                    class="role-icon" /></span
+                ><span class="sort-arrow"></span>
+              </th>
+              <th data-sort="danger">
+                <span class="role-header-content"
+                  ><img
+                    src="/images/icons_ping/Ping_Caution.png"
+                    alt="Danger"
+                    title="Danger"
+                    class="role-icon" /></span
+                ><span class="sort-arrow"></span>
+              </th>
+              <th data-sort="enemyMissing">
+                <span class="role-header-content"
+                  ><img
+                    src="/images/icons_ping/Ping_EnemyMissing.png"
+                    alt="Missing"
+                    title="Missing"
+                    class="role-icon" /></span
+                ><span class="sort-arrow"></span>
+              </th>
+              <th data-sort="enemyVision">
+                <span class="role-header-content"
+                  ><img
+                    src="/images/icons_ping/Ping_EnemyVision.png"
+                    alt="Enemy Vision"
+                    title="Enemy Vision"
+                    class="role-icon" /></span
+                ><span class="sort-arrow"></span>
+              </th>
+              <th data-sort="getBack">
+                <span class="role-header-content"
+                  ><img
+                    src="/images/icons_ping/Ping_Retreat.png"
+                    alt="Get Back"
+                    title="Get Back"
+                    class="role-icon" /></span
+                ><span class="sort-arrow"></span>
+              </th>
+              <th data-sort="needVision">
+                <span class="role-header-content"
+                  ><img
+                    src="/images/icons_ping/Ping_NeedVision.png"
+                    alt="Need Vision"
+                    title="Need Vision"
+                    class="role-icon" /></span
+                ><span class="sort-arrow"></span>
+              </th>
+              <th data-sort="onMyWay">
+                <span class="role-header-content"
+                  ><img
+                    src="/images/icons_ping/Ping_OnMyWay.png"
+                    alt="On My Way"
+                    title="On My Way"
+                    class="role-icon" /></span
+                ><span class="sort-arrow"></span>
+              </th>
+              <th data-sort="push">
+                <span class="role-header-content"
+                  ><img
+                    src="/images/icons_ping/Ping_Push.png"
+                    alt="Push"
+                    title="Push"
+                    class="role-icon" /></span
+                ><span class="sort-arrow"></span>
+              </th>
+              <th data-sort="total" id="pings-total-header">
+                Total Avg<span class="sort-arrow"></span>
+              </th>
+            </tr>
+          </thead>
+          <tbody id="pings-leaderboard-body"></tbody>
+        </table>
       </div>
-
-      <table id="leaderboard">
-        <thead>
-          <tr>
-            <th data-sort="name">Name<span class="sort-arrow"></span></th>
-            <th data-sort="soloScore">
-              Solo/Duo Rank<span class="sort-arrow"></span>
-            </th>
-            <th data-sort="flexScore">
-              Flex Rank<span class="sort-arrow"></span>
-            </th>
-            <th data-sort="fivesScore">
-              5s Rank<span class="sort-arrow"></span>
-            </th>
-            <th data-sort="masteryPoints">
-              Total Mastery<span class="sort-arrow"></span>
-            </th>
-            <th data-sort="top">
-              <span class="role-header-content"
-                ><img
-                  src="/images/icons_position/Position_Top.png"
-                  alt="Top"
-                  class="role-icon" />S26 Flex TOP</span
-              ><span class="sort-arrow"></span>
-            </th>
-            <th data-sort="jgl">
-              <span class="role-header-content"
-                ><img
-                  src="/images/icons_position/Position_Jungle.png"
-                  alt="Jungle"
-                  class="role-icon" />S26 Flex JGL</span
-              ><span class="sort-arrow"></span>
-            </th>
-            <th data-sort="mid">
-              <span class="role-header-content"
-                ><img
-                  src="/images/icons_position/Position_Middle.png"
-                  alt="Mid"
-                  class="role-icon" />S26 Flex MID</span
-              ><span class="sort-arrow"></span>
-            </th>
-            <th data-sort="bot">
-              <span class="role-header-content"
-                ><img
-                  src="/images/icons_position/Position_Bottom.png"
-                  alt="Bot"
-                  class="role-icon" />S26 Flex BOT</span
-              ><span class="sort-arrow"></span>
-            </th>
-            <th data-sort="sup">
-              <span class="role-header-content"
-                ><img
-                  src="/images/icons_position/Position_Support.png"
-                  alt="Support"
-                  class="role-icon" />S26 Flex SUP</span
-              ><span class="sort-arrow"></span>
-            </th>
-            <th data-sort="total">Total<span class="sort-arrow"></span></th>
-          </tr>
-        </thead>
-        <tbody id="leaderboard-body"></tbody>
-      </table>
-
-      <!-- Ping Chart -->
-
-      <h2>Stop pinging me (S26 Flex)</h2>
-
-      <div id="pings-controls" style="margin-bottom: 10px; font-size: 11px">
-        <label style="cursor: pointer; user-select: none">
-          <strong>Display:</strong>
-          <select
-            id="pings-mode-select"
-            style="margin-left: 6px; padding: 2px 6px; font-size: 11px">
-            <option value="avg" selected>Average per Game</option>
-            <option value="total">Total Pings</option>
-          </select>
-        </label>
-      </div>
-
-      <table id="pings-leaderboard">
-        <thead>
-          <tr>
-            <th data-sort="name">Name<span class="sort-arrow"></span></th>
-            <th data-sort="allIn">
-              <span class="role-header-content">
-                <img
-                  src="/images/icons_ping/Ping_AllIn.png"
-                  alt="All In"
-                  title="All In"
-                  class="role-icon" /> </span
-              ><span class="sort-arrow"></span>
-            </th>
-            <th data-sort="assistMe">
-              <span class="role-header-content">
-                <img
-                  src="/images/icons_ping/Ping_AssistMe.png"
-                  alt="Assist Me"
-                  title="Assist Me"
-                  class="role-icon" /> </span
-              ><span class="sort-arrow"></span>
-            </th>
-            <th data-sort="basic">
-              <span class="role-header-content">
-                <img
-                  src="/images/icons_ping/Ping_Ping.png"
-                  alt="Basic (Alt+Click)"
-                  title="Basic (Alt+Click)"
-                  class="role-icon" /> </span
-              ><span class="sort-arrow"></span>
-            </th>
-            <th data-sort="danger">
-              <span class="role-header-content">
-                <img
-                  src="/images/icons_ping/Ping_Caution.png"
-                  alt="Danger"
-                  title="Danger"
-                  class="role-icon" /> </span
-              ><span class="sort-arrow"></span>
-            </th>
-            <th data-sort="enemyMissing">
-              <span class="role-header-content">
-                <img
-                  src="/images/icons_ping/Ping_EnemyMissing.png"
-                  alt="Missing"
-                  title="Missing"
-                  class="role-icon" /> </span
-              ><span class="sort-arrow"></span>
-            </th>
-            <th data-sort="enemyVision">
-              <span class="role-header-content">
-                <img
-                  src="/images/icons_ping/Ping_EnemyVision.png"
-                  alt="Enemy Vision"
-                  title="Enemy Vision"
-                  class="role-icon" /> </span
-              ><span class="sort-arrow"></span>
-            </th>
-            <th data-sort="getBack">
-              <span class="role-header-content">
-                <img
-                  src="/images/icons_ping/Ping_Retreat.png"
-                  alt="Get Back"
-                  title="Get Back"
-                  class="role-icon" /> </span
-              ><span class="sort-arrow"></span>
-            </th>
-            <th data-sort="needVision">
-              <span class="role-header-content">
-                <img
-                  src="/images/icons_ping/Ping_NeedVision.png"
-                  alt="Need Vision"
-                  title="Need Vision"
-                  class="role-icon" /> </span
-              ><span class="sort-arrow"></span>
-            </th>
-            <th data-sort="onMyWay">
-              <span class="role-header-content">
-                <img
-                  src="/images/icons_ping/Ping_OnMyWay.png"
-                  alt="On My Way"
-                  title="On My Way"
-                  class="role-icon" /> </span
-              ><span class="sort-arrow"></span>
-            </th>
-            <th data-sort="push">
-              <span class="role-header-content">
-                <img
-                  src="/images/icons_ping/Ping_Push.png"
-                  alt="Push"
-                  title="Push"
-                  class="role-icon" /> </span
-              ><span class="sort-arrow"></span>
-            </th>
-            <th data-sort="total" id="pings-total-header">
-              Total Avg<span class="sort-arrow"></span>
-            </th>
-          </tr>
-        </thead>
-        <tbody id="pings-leaderboard-body"></tbody>
-      </table>
     </div>
   </body>
 </html>

@@ -180,3 +180,24 @@ export async function fetchRankedFivesStats(puuid) {
 
     return await response.json();
 }
+
+export async function fetchChampionLeaderboard(
+    championId,
+) {
+    const response = await fetch(
+        `/api/champion-leaderboard?championId=${encodeURIComponent(
+            championId,
+        )}`,
+    );
+
+    const result = await response.json();
+
+    if (!response.ok) {
+        throw new Error(
+            result.error ||
+                "Failed to load champion leaderboard",
+        );
+    }
+
+    return result;
+}

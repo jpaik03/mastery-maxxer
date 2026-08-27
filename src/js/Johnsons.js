@@ -19,6 +19,7 @@ import {
     fetchMasteryData,
     fetchFlexStats,
     fetchRankedFivesStats,
+    fetchChampionLeaderboard,
     syncRankedQueues,
     syncAndFetchPlayerPeaks,
 } from "./riotAPI.js";
@@ -150,6 +151,9 @@ let leaderboardData = [];
 let leaderboardMode = "wr";
 let currentSortKey = "soloScore";
 let currentSortAsc = false;
+
+let championLeaderboardData = [];
+let championLeaderboardMode = "wr";
 
 let pingsLeaderboardData = [];
 let pingsDisplayMode = "avg";
@@ -583,6 +587,118 @@ function renderLeaderboard() {
     updateHeaderSortArrows("#leaderboard", currentSortKey, currentSortAsc);
 }
 
+function renderChampionLeaderboard() {
+    const tbody = document.getElementById(
+        "champion-leaderboard-body",
+    );
+
+    if (!tbody) {
+        return;
+    }
+
+    const sortedPlayers = [
+        ...championLeaderboardData,
+    ].sort((a, b) => {
+        if (championLeaderboardMode === "games") {
+            return (
+                b.games - a.games ||
+                b.winRate - a.winRate ||
+                a.name.localeCompare(b.name)
+            );
+        }
+
+        return (
+            b.winRate - a.winRate ||
+            b.games - a.games ||
+            a.name.localeCompare(b.name)
+        );
+    });
+
+    tbody.innerHTML = sortedPlayers
+        .map(
+            (player, index) => `
+                <tr>
+                    <td>
+                        <strong>${index + 1}</strong>
+                    </td>
+
+                    <td>
+                        <strong>${player.name}</strong>
+                    </td>
+
+                    <td>
+                        ${player.wins}-${player.losses}
+                    </td>
+
+                    <td>
+                        ${
+                            player.games > 0
+                                ? `${player.winRate.toFixed(1)}%`
+                                : "—"
+                        }
+                    </td>
+
+                    <td>${player.games}</td>
+                </tr>
+            `,
+        )
+        .join("");
+}
+
+async function loadChampionLeaderboard() {
+    const championSelect =
+        document.getElementById("champion-select");
+
+    const championStatus =
+        document.getElementById("champion-status");
+
+    const championId = championSelect?.value;
+
+    if (!championId) {
+        return;
+    }
+
+    championStatus.textContent = "Loading...";
+
+    try {
+        const result =
+            await fetchChampionLeaderboard(
+                championId,
+            );
+
+        const statsByPuuid = new Map(
+            (result.players || []).map((player) => [
+                player.puuid,
+                player,
+            ]),
+        );
+
+        championLeaderboardData = PLAYERS.map(
+            (player) => {
+                const playerStats =
+                    statsByPuuid.get(player.puuid);
+
+                return {
+                    name: player.name,
+                    puuid: player.puuid,
+                    wins: playerStats?.wins || 0,
+                    losses: playerStats?.losses || 0,
+                    games: playerStats?.games || 0,
+                    winRate: playerStats?.winRate || 0,
+                };
+            },
+        );
+
+        renderChampionLeaderboard();
+        championStatus.textContent = "";
+    } catch (error) {
+        console.error(error);
+
+        championStatus.textContent =
+            `Error: ${error.message}`;
+    }
+}
+
 // Render pings leaderboard table (average or total count view)
 function renderPingsLeaderboard() {
     const tbody = document.getElementById("pings-leaderboard-body");
@@ -652,6 +768,31 @@ function setupLeaderboardSorting() {
     }
 }
 
+function setupChampionLeaderboard() {
+    const championSelect =
+        document.getElementById("champion-select");
+
+    const modeSelect =
+        document.getElementById(
+            "champion-mode-select",
+        );
+
+    championSelect?.addEventListener(
+        "change",
+        loadChampionLeaderboard,
+    );
+
+    modeSelect?.addEventListener(
+        "change",
+        (event) => {
+            championLeaderboardMode =
+                event.target.value;
+
+            renderChampionLeaderboard();
+        },
+    );
+}
+
 // Bind event listeners for ping leaderboard column headers and view toggles
 function setupPingsLeaderboardSorting() {
     document
@@ -718,10 +859,40 @@ function setupChampIconHighlighting() {
 async function initChampionData() {
     if (Object.keys(championMap).length === 0) {
         championMap = await getChampMap();
-        totalChampionCount = Object.keys(championMap).length;
-        const headerEl = document.getElementById("header-champs");
+
+        totalChampionCount =
+            Object.keys(championMap).length;
+
+        const headerEl =
+            document.getElementById("header-champs");
+
         if (headerEl) {
-            headerEl.innerText = `Mastery Champions (out of ${totalChampionCount})`;
+            headerEl.innerText =
+                `Mastery Champions (out of ${totalChampionCount})`;
+        }
+
+        const championSelect =
+            document.getElementById(
+                "champion-select",
+            );
+
+        if (championSelect) {
+            championSelect.innerHTML =
+                Object.entries(championMap)
+                    .sort(
+                        (
+                            [, nameA],
+                            [, nameB],
+                        ) =>
+                            nameA.localeCompare(
+                                nameB,
+                            ),
+                    )
+                    .map(
+                        ([id, name]) =>
+                            `<option value="${id}">${name}</option>`,
+                    )
+                    .join("");
         }
     }
 }
@@ -807,6 +978,7 @@ async function loadAllProfiles() {
 
         await syncRankedQueues();
         await initChampionData();
+        await loadChampionLeaderboard();
 
         for (
             let i = 0;
@@ -838,6 +1010,7 @@ document.addEventListener("DOMContentLoaded", () => {
         .getElementById("load-all-btn")
         .addEventListener("click", loadAllProfiles);
     setupLeaderboardSorting();
+    setupChampionLeaderboard();
     setupPingsLeaderboardSorting();
     setupChampIconHighlighting();
     loadAllProfiles();

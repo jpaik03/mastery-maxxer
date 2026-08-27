@@ -1033,6 +1033,75 @@ app.get("/api/player-ranked-fives-stats", async (req, res) => {
     },
 );
 
+// Aggregate all stored Flex (440) and Ranked 5v5 (710)
+// matches for the selected champion.
+app.get("/api/champion-leaderboard", async (req, res) => {
+    const championId = Number(req.query.championId);
+
+    if (!Number.isInteger(championId) || championId <= 0) {
+        return res.status(400).json({
+            error: "A valid championId is required",
+        });
+    }
+
+    try {
+        const { data: matches, error } = await supabase
+            .from("player_matches")
+            .select("puuid,win")
+            .eq("champion_id", championId)
+            .in("queue_id", [
+                RANKED_FLEX_QUEUE_ID,
+                RANKED_FIVES_QUEUE_ID,
+            ]);
+
+        if (error) {
+            throw error;
+        }
+
+        const statsByPuuid = new Map();
+
+        for (const match of matches || []) {
+            const current = statsByPuuid.get(match.puuid) || {
+                puuid: match.puuid,
+                wins: 0,
+                losses: 0,
+                games: 0,
+            };
+
+            current.games += 1;
+
+            if (match.win) {
+                current.wins += 1;
+            } else {
+                current.losses += 1;
+            }
+
+            statsByPuuid.set(match.puuid, current);
+        }
+
+        const players = Array.from(
+            statsByPuuid.values(),
+        ).map((player) => ({
+            ...player,
+            winRate:
+                player.games > 0
+                    ? (player.wins / player.games) * 100
+                    : 0,
+        }));
+
+        res.json({
+            championId,
+            players,
+        });
+    } catch (error) {
+        handleApiError(
+            res,
+            error,
+            "Failed to aggregate champion leaderboard",
+        );
+    }
+});
+
 /* PEAK RANK ROUTE */
 
 app.post("/api/player-peaks", async (req, res) => {

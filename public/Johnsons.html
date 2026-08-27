@@ -207,7 +207,60 @@
           </tr>
         </tbody>
       </table>
+      
+      <!-- Champion Leaderboard -->
 
+      <h2>Champion Win Rate Leaderboard</h2>
+
+      <div style="margin-bottom: 10px; font-size: 11px">
+        <label>
+          <strong>Champion:</strong>
+
+          <select
+            id="champion-select"
+            style="
+              margin: 0 12px 0 6px;
+              padding: 2px 6px;
+              font-size: 11px;
+            "
+          ></select>
+        </label>
+
+        <label>
+          <strong>Rank by:</strong>
+
+          <select
+            id="champion-mode-select"
+            style="
+              margin-left: 6px;
+              padding: 2px 6px;
+              font-size: 11px;
+            "
+          >
+            <option value="wr" selected>Win Rate</option>
+            <option value="games">Games Played</option>
+          </select>
+        </label>
+
+        <span
+          id="champion-status"
+          style="margin-left: 10px"
+        ></span>
+      </div>
+
+      <table id="champion-leaderboard">
+        <thead>
+          <tr>
+            <th>Rank</th>
+            <th>Player</th>
+            <th>W-L</th>
+            <th>Win Rate</th>
+            <th>Games</th>
+          </tr>
+        </thead>
+
+        <tbody id="champion-leaderboard-body"></tbody>
+      </table>
       <!-- Leaderboard -->
 
       <h2>Leaderboard</h2>

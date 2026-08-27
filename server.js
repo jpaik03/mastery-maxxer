@@ -549,21 +549,6 @@ async function evaluateAndPersistPeaks(puuid, player, soloEntry, flexEntry) {
 
 /* RIOT API ROUTES */
 
-// Get Riot account info by PUUID
-app.get("/api/account-by-puuid", async (req, res) => {
-    const { puuid } = req.query;
-    if (!puuid) return res.status(400).json({ error: "PUUID required" });
-
-    try {
-        const response = await regionalClient.get(
-            `/riot/account/v1/accounts/by-puuid/${puuid}`,
-        );
-        res.json(response.data);
-    } catch (error) {
-        handleApiError(res, error, "Failed to fetch Riot account by PUUID");
-    }
-});
-
 // Get Riot account info by Riot ID (gameName + tagLine)
 app.get("/api/account-by-riot-id", async (req, res) => {
     const { gameName, tagLine } = req.query;
@@ -578,6 +563,21 @@ app.get("/api/account-by-riot-id", async (req, res) => {
         res.json(response.data);
     } catch (error) {
         handleApiError(res, error, "Failed to fetch Riot account by Riot ID");
+    }
+});
+
+// Get Riot account info by PUUID
+app.get("/api/account-by-puuid", async (req, res) => {
+    const { puuid } = req.query;
+    if (!puuid) return res.status(400).json({ error: "PUUID required" });
+
+    try {
+        const response = await regionalClient.get(
+            `/riot/account/v1/accounts/by-puuid/${puuid}`,
+        );
+        res.json(response.data);
+    } catch (error) {
+        handleApiError(res, error, "Failed to fetch Riot account by PUUID");
     }
 });
 
@@ -681,6 +681,34 @@ app.get("/api/match-info", async (req, res) => {
 
 /* DATABASE / COMPLEX ROUTES */
 
+// Bulk sync entire roster for both Ranked Flex (440) and Ranked 5v5 (710)
+app.post("/api/sync-roster-ranked", async (req, res) => {
+    try {
+        const syncStartedAt = Date.now();
+
+        const { uniqueMatchIds, discovered } =
+            await discoverRosterRankedMatchIds(
+                TRACKED_PUUIDS,
+                SEASON_2026_START,
+            );
+
+        await ingestPlayerMatches(uniqueMatchIds);
+        await updateRosterLastSyncedAt(TRACKED_PUUIDS, syncStartedAt);
+        const storedPlayerRows =
+            await getStoredRankedRowCounts(SEASON_2026_START);
+
+        res.json({
+            success: true,
+            syncedAt: syncStartedAt,
+            newUniqueMatchCount: uniqueMatchIds.length,
+            discovered,
+            storedPlayerRows,
+        });
+    } catch (error) {
+        handleApiError(res, error, "Failed to synchronize ranked queues");
+    }
+});
+
 // Bulk fetch aggregated Flex & 5s stats for the entire roster in a single query
 app.get("/api/roster-ranked-stats", async (req, res) => {
     try {
@@ -737,6 +765,27 @@ app.get("/api/roster-ranked-stats", async (req, res) => {
     }
 });
 
+// Fetch Ranked 5v5 (710) Role Breakdown for a single player
+app.get("/api/player-ranked-fives-stats", async (req, res) => {
+    const { puuid } = req.query;
+    if (!puuid) return res.status(400).json({ error: "PUUID required" });
+
+    try {
+        const { data: matches, error } = await supabase
+            .from("player_matches")
+            .select("team_position,win,pings")
+            .eq("puuid", puuid)
+            .eq("queue_id", RANKED_FIVES_QUEUE_ID)
+            .gte("game_creation", SEASON_2026_START * 1000);
+
+        if (error) throw error;
+
+        res.json(computeMatchAggregations(matches || []));
+    } catch (error) {
+        handleApiError(res, error, "Failed to aggregate Ranked 5v5 stats");
+    }
+});
+
 // Sync & Fetch Flex (440) Role Breakdown for a single player
 app.get("/api/player-flex-stats", async (req, res) => {
     const { puuid, name, gameName, tagLine } = req.query;
@@ -766,55 +815,6 @@ app.get("/api/player-flex-stats", async (req, res) => {
         res.json(computeMatchAggregations(flexMatches || []));
     } catch (error) {
         handleApiError(res, error, "Failed to aggregate Flex stats");
-    }
-});
-
-// Bulk sync entire roster for both Ranked Flex (440) and Ranked 5v5 (710)
-app.post("/api/sync-roster-ranked", async (req, res) => {
-    try {
-        const syncStartedAt = Date.now();
-
-        const { uniqueMatchIds, discovered } =
-            await discoverRosterRankedMatchIds(
-                TRACKED_PUUIDS,
-                SEASON_2026_START,
-            );
-
-        await ingestPlayerMatches(uniqueMatchIds);
-        await updateRosterLastSyncedAt(TRACKED_PUUIDS, syncStartedAt);
-        const storedPlayerRows =
-            await getStoredRankedRowCounts(SEASON_2026_START);
-
-        res.json({
-            success: true,
-            syncedAt: syncStartedAt,
-            newUniqueMatchCount: uniqueMatchIds.length,
-            discovered,
-            storedPlayerRows,
-        });
-    } catch (error) {
-        handleApiError(res, error, "Failed to synchronize ranked queues");
-    }
-});
-
-// Fetch Ranked 5v5 (710) Role Breakdown for a single player
-app.get("/api/player-ranked-fives-stats", async (req, res) => {
-    const { puuid } = req.query;
-    if (!puuid) return res.status(400).json({ error: "PUUID required" });
-
-    try {
-        const { data: matches, error } = await supabase
-            .from("player_matches")
-            .select("team_position,win,pings")
-            .eq("puuid", puuid)
-            .eq("queue_id", RANKED_FIVES_QUEUE_ID)
-            .gte("game_creation", SEASON_2026_START * 1000);
-
-        if (error) throw error;
-
-        res.json(computeMatchAggregations(matches || []));
-    } catch (error) {
-        handleApiError(res, error, "Failed to aggregate Ranked 5v5 stats");
     }
 });
 
@@ -863,6 +863,81 @@ app.get("/api/champion-leaderboard", async (req, res) => {
         res.json({ championId, players });
     } catch (error) {
         handleApiError(res, error, "Failed to aggregate champion leaderboard");
+    }
+});
+
+// Aggregate all bot + support pairings across stored Flex and Ranked 5s matches
+app.get("/api/duo-leaderboard", async (req, res) => {
+    try {
+        let allMatches = [];
+        let from = 0;
+        const step = 1000;
+
+        while (true) {
+            const { data, error } = await supabase
+                .from("player_matches")
+                .select("match_id,team_id,puuid,team_position,win")
+                .in("queue_id", [RANKED_FLEX_QUEUE_ID, RANKED_FIVES_QUEUE_ID])
+                .gte("game_creation", SEASON_2026_START * 1000)
+                .range(from, from + step - 1);
+
+            if (error) throw error;
+            if (!data || data.length === 0) break;
+
+            allMatches.push(...data);
+            if (data.length < step) break;
+            from += step;
+        }
+
+        // Group match participants by match_id and team_id
+        const teamsMap = new Map();
+        for (const m of allMatches) {
+            const key = `${m.match_id}_${m.team_id}`;
+            if (!teamsMap.has(key)) {
+                teamsMap.set(key, []);
+            }
+            teamsMap.get(key).push(m);
+        }
+
+        const duosMap = new Map();
+        for (const participants of teamsMap.values()) {
+            const bot = participants.find(
+                (p) => normalizePosition(p.team_position) === "BOTTOM",
+            );
+            const sup = participants.find(
+                (p) => normalizePosition(p.team_position) === "UTILITY",
+            );
+
+            if (bot && sup && bot.puuid !== sup.puuid) {
+                const pairKey = `${bot.puuid}_${sup.puuid}`;
+                if (!duosMap.has(pairKey)) {
+                    duosMap.set(pairKey, {
+                        botPuuid: bot.puuid,
+                        supPuuid: sup.puuid,
+                        wins: 0,
+                        losses: 0,
+                        games: 0,
+                    });
+                }
+
+                const duo = duosMap.get(pairKey);
+                duo.games += 1;
+                if (bot.win) {
+                    duo.wins += 1;
+                } else {
+                    duo.losses += 1;
+                }
+            }
+        }
+
+        const duos = Array.from(duosMap.values()).map((d) => ({
+            ...d,
+            winRate: d.games > 0 ? (d.wins / d.games) * 100 : 0,
+        }));
+
+        res.json({ duos });
+    } catch (error) {
+        handleApiError(res, error, "Failed to aggregate duo leaderboard");
     }
 });
 

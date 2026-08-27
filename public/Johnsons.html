@@ -266,6 +266,7 @@
         </div>
         <div id="champion-icon-container"></div>
 
+        <!-- Champion Leaderboard -->
         <table id="champion-leaderboard">
           <thead>
             <tr>
@@ -277,6 +278,57 @@
             </tr>
           </thead>
           <tbody id="champion-leaderboard-body"></tbody>
+        </table>
+
+        <!-- Bottom Lane Duos -->
+        <h3>Bottom Lane Duos</h3>
+        <div id="duo-controls">
+          <label class="duo-dropdown-label">
+            <strong>Player:</strong>
+            <div class="custom-player-select" id="duo-player-select-container">
+              <input
+                type="text"
+                id="duo-player-search"
+                placeholder="All players..."
+                autocomplete="off" />
+              <span class="custom-select-arrow">▼</span>
+              <div class="custom-select-dropdown" id="duo-player-dropdown"></div>
+            </div>
+          </label>
+          <label id="duo-min-games-label">
+            <input type="checkbox" id="duo-show-all-cb" />
+            Show all (< 5 games)
+          </label>
+        </div>
+
+        <table id="duo-leaderboard">
+          <thead>
+            <tr>
+              <th data-sort="rank">Rank<span class="sort-arrow"></span></th>
+              <th data-sort="bot">
+                <span class="role-header-content">
+                  <img
+                    src="/images/icons_position/Position_Bottom.png"
+                    alt="Bot"
+                    class="role-icon" />
+                  BOT </span
+                ><span class="sort-arrow"></span>
+              </th>
+              <th data-sort="sup">
+                <span class="role-header-content">
+                  <img
+                    src="/images/icons_position/Position_Support.png"
+                    alt="Support"
+                    class="role-icon" />
+                  SUP </span
+                ><span class="sort-arrow"></span>
+              </th>
+              <th data-sort="wl">W-L<span class="sort-arrow"></span></th>
+              <th data-sort="wr">Win Rate<span class="sort-arrow"></span></th>
+              <th data-sort="games">Games<span class="sort-arrow"></span></th>
+            </tr>
+          </thead>
+          <tbody id="duo-leaderboard-body"></tbody>
         </table>
 
         <!-- Stop pinging me -->

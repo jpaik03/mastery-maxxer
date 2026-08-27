@@ -2,26 +2,53 @@ h1 {
   text-align: center;
 }
 
-h2 {
-  margin-top: 10px;
-  margin-bottom: 10px;
+h2,
+h3 {
+  margin: 10px 0;
 }
 
-h3 {
-  margin-top: 10px;
-  margin-bottom: 10px;
+#controls,
+#view-toggle-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 #controls {
-  display: flex;
-  justify-content: center;
   margin-top: 10px;
+}
+
+#view-toggle-container {
+  gap: 12px;
+  margin-bottom: 0;
 }
 
 #status-msg {
   margin-top: 10px;
   font-weight: bold;
   text-align: center;
+}
+
+.view-toggle-btn {
+  padding: 6px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  border: 1px solid #ccc;
+  background-color: #f7f7f7;
+  color: #444;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.view-toggle-btn:hover {
+  background-color: #e9ecef;
+}
+
+.view-toggle-btn.active {
+  background-color: #1a5fb4;
+  color: #fff;
+  border-color: #1a5fb4;
 }
 
 table {
@@ -31,10 +58,6 @@ table {
   line-height: 1.3;
   text-align: center;
   table-layout: fixed;
-}
-
-#s26-flex {
-  margin-top: 24px;
 }
 
 th,
@@ -111,7 +134,8 @@ tr:not(#row-top10) td {
   position: relative;
 }
 
-.role-icon {
+.role-icon,
+.rank-icon {
   width: 16px;
   height: 16px;
   display: block;
@@ -119,7 +143,8 @@ tr:not(#row-top10) td {
   margin: 0;
 }
 
-.role-header-content {
+.role-header-content,
+.rank-cell-content {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -127,24 +152,12 @@ tr:not(#row-top10) td {
   vertical-align: middle;
 }
 
+.rank-cell-content {
+  gap: 4px;
+}
+
 tbody th .role-header-content {
   justify-content: flex-start;
-}
-
-.rank-cell-content {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  vertical-align: middle;
-}
-
-.rank-icon {
-  width: 16px;
-  height: 16px;
-  display: block;
-  object-fit: contain;
-  margin: 0;
 }
 
 .wr-positive {
@@ -155,10 +168,41 @@ tbody th .role-header-content {
   background-color: #fce8e6 !important;
 }
 
-#leaderboard {
+.sort-arrow {
+  display: inline-block;
+  font-size: 9px;
+  margin-left: 2px;
+  color: #666;
+}
+
+#leaderboard thead th,
+#flex-leaderboard thead th,
+#fives-leaderboard thead th,
+#champion-leaderboard thead th,
+#duo-leaderboard thead th,
+#pings-leaderboard thead th {
+  background-color: #e9ecef;
+  cursor: pointer;
+  user-select: none;
+  text-align: center;
+  padding: 6px 8px;
+  font-weight: 600;
+}
+
+#leaderboard thead th:hover,
+#flex-leaderboard thead th:hover,
+#fives-leaderboard thead th:hover,
+#champion-leaderboard thead th:hover,
+#duo-leaderboard thead th:hover,
+#pings-leaderboard thead th:hover {
+  background-color: #dfe3e6;
+}
+
+#leaderboard,
+#champion-leaderboard,
+#duo-leaderboard {
   width: 40%;
-  margin-top: 10px;
-  margin-bottom: 30px;
+  margin: 10px auto 30px auto;
 }
 
 #leaderboard th#header-champs {
@@ -169,13 +213,22 @@ tbody th .role-header-content {
   width: 17%;
 }
 
-#ranked-headers-row {
+#ranked-headers-row,
+#ranked-side-by-side {
   display: flex;
   justify-content: center;
-  align-items: flex-end;
   gap: 30px;
   width: 95%;
-  margin: 10px auto 0 auto;
+  margin: 0 auto;
+}
+
+#ranked-headers-row {
+  align-items: flex-end;
+  margin-top: 10px;
+}
+
+#ranked-side-by-side {
+  margin: 8px auto 30px auto;
 }
 
 .ranked-header-cell {
@@ -185,31 +238,6 @@ tbody th .role-header-content {
 
 .ranked-header-cell h2 {
   margin: 0;
-  text-align: center;
-}
-
-#ranked-shared-controls {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin: 0 -15px 4px -15px;
-  font-size: 12px;
-  white-space: nowrap;
-  z-index: 2;
-}
-
-#ranked-shared-mode-select {
-  margin-left: 6px;
-  padding: 2px 6px;
-  font-size: 11px;
-}
-
-#ranked-side-by-side {
-  display: flex;
-  justify-content: center;
-  gap: 30px;
-  width: 95%;
-  margin: 8px auto 30px auto;
 }
 
 .ranked-table-column {
@@ -222,22 +250,15 @@ tbody th .role-header-content {
 #fives-leaderboard,
 #flex-leaderboard {
   width: 100%;
-  margin-top: 0;
-  margin-bottom: 0;
+  margin: 0;
 }
 
-#fives-leaderboard th#fives-rank {
-  width: 16%;
-}
-
-#fives-leaderboard th:not(#fives-rank) {
-  width: 12%;
-}
-
+#fives-leaderboard th#fives-rank,
 #flex-leaderboard th#flex-rank {
   width: 16%;
 }
 
+#fives-leaderboard th:not(#fives-rank),
 #flex-leaderboard th:not(#flex-rank) {
   width: 12%;
 }
@@ -256,42 +277,33 @@ tbody th .role-header-content {
   width: 8%;
 }
 
-#champion-leaderboard {
-  width: 40%;
-  margin: 10px auto 30px auto;
-}
-
-#leaderboard thead th,
-#flex-leaderboard thead th,
-#fives-leaderboard thead th,
-#champion-leaderboard thead th,
-#pings-leaderboard thead th {
-  background-color: #e9ecef;
-  cursor: pointer;
-  user-select: none;
-  text-align: center;
-  padding: 6px 8px;
-  font-weight: 600;
-}
-
-#leaderboard thead th:hover,
-#flex-leaderboard thead th:hover,
-#fives-leaderboard thead th:hover,
-#champion-leaderboard thead th:hover,
-#pings-leaderboard thead th:hover {
-  background-color: #dfe3e6;
-}
-
+#ranked-shared-controls,
 #champion-controls,
+#duo-controls,
 #leaderboard-controls,
-#pings-controls {
+#pings-controls,
+#champion-icon-container {
   display: flex;
   justify-content: center;
   align-items: center;
+}
+
+#ranked-shared-controls {
+  margin: 0 -15px 4px -15px;
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 2;
+}
+
+#champion-controls,
+#duo-controls,
+#leaderboard-controls,
+#pings-controls {
   margin-bottom: 10px;
   font-size: 11px;
 }
 
+#ranked-shared-mode-select,
 #champion-mode-select,
 #pings-mode-select {
   margin-left: 6px;
@@ -299,7 +311,8 @@ tbody th .role-header-content {
   font-size: 11px;
 }
 
-#champion-min-games-label {
+#champion-min-games-label,
+#duo-min-games-label {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -309,11 +322,7 @@ tbody th .role-header-content {
 }
 
 #champion-icon-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-top: 6px;
-  margin-bottom: 10px;
+  margin: 6px 0 10px 0;
 }
 
 #champion-selected-icon {
@@ -324,18 +333,21 @@ tbody th .role-header-content {
   display: block;
 }
 
-.champ-dropdown-label {
+.champ-dropdown-label,
+.duo-dropdown-label {
   display: inline-flex;
   align-items: center;
 }
 
-.custom-champ-select {
+.custom-champ-select,
+.custom-player-select {
   position: relative;
   display: inline-block;
   margin: 0 12px 0 6px;
 }
 
-#champion-search {
+#champion-search,
+#duo-player-search {
   margin: 0;
   padding: 2px 20px 2px 6px;
   font-size: 11px;
@@ -348,7 +360,8 @@ tbody th .role-header-content {
   box-sizing: border-box;
 }
 
-#champion-search:focus {
+#champion-search:focus,
+#duo-player-search:focus {
   cursor: text;
   outline: 1px solid #1a5fb4;
 }
@@ -399,43 +412,6 @@ tbody th .role-header-content {
   background-color: #e9ecef;
 }
 
-.sort-arrow {
-  display: inline-block;
-  font-size: 9px;
-  margin-left: 2px;
-  color: #666;
-}
-
-#view-toggle-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 0;
-}
-
-.view-toggle-btn {
-  padding: 6px 18px;
-  font-size: 14px;
-  font-weight: 600;
-  border: 1px solid #ccc;
-  background-color: #f7f7f7;
-  color: #444;
-  cursor: pointer;
-  border-radius: 4px;
-  transition: all 0.15s ease;
-}
-
-.view-toggle-btn:hover {
-  background-color: #e9ecef;
-}
-
-.view-toggle-btn.active {
-  background-color: #1a5fb4;
-  color: #fff;
-  border-color: #1a5fb4;
-}
-
 #view-ranked table {
   font-size: 11px;
   line-height: 1.4;
@@ -448,15 +424,40 @@ tbody th .role-header-content {
 }
 
 #view-ranked #champion-controls,
+#view-ranked #duo-controls,
 #view-ranked #pings-controls {
   font-size: 12px;
 }
 
 #view-ranked #champion-search,
-#view-ranked select {
+#view-ranked #duo-player-search,
+#view-ranked select,
+#view-ranked .custom-select-dropdown {
   font-size: 11px;
 }
 
-#view-ranked .custom-select-dropdown {
-  font-size: 11px;
+.table-action-row td {
+  background-color: #f7f7f7;
+  padding: 8px !important;
+}
+
+.duo-action-btn {
+  cursor: pointer;
+  color: #1a5fb4;
+  padding: 2px 6px;
+  border-radius: 2px;
+  user-select: none;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.duo-action-btn:hover {
+  text-decoration: underline;
+  background-color: #dfe3e6;
+}
+
+.duo-action-separator {
+  margin: 0 8px;
+  color: #888;
 }

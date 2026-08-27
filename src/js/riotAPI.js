@@ -106,62 +106,6 @@ export async function fetchAChampMastery(puuid, champId) {
 }
 
 /*
- * Name:        fetchMatchHistory()
- * Arguments:   A string representing the a player's PUUID.
- * Returns:     An array of match IDs.
- * Description: Retrieves the last 20 match IDs for the given PUUID.
- * Effects:     Calls the Riot API.
- */
-export async function fetchMatchHistory(puuid) {
-    const response = await fetch(`/api/match-history?puuid=${puuid}&count=20`);
-    return await response.json();
-}
-
-/*
- * Name:        fetchMatchDetails()
- * Arguments:   A string representing the match ID.
- * Returns:     An object containing match details.
- * Description: Calls the Riot API to fetch data for a specific match.
- * Effects:     None.
- */
-export async function fetchMatchDetails(matchId) {
-    const response = await fetch(`/api/match-info?matchId=${matchId}`);
-    return await response.json();
-}
-
-/*
- * Name:        fetchRosterRankedStats()
- * Arguments:   None.
- * Returns:     A promise resolving to aggregated Flex and Ranked 5v5 stats for
- *              all tracked roster players.
- * Description: Calls the server API to bulk-fetch and aggregate stored ranked
- *              match stats for the entire roster.
- * Effects:     None.
- */
-export async function fetchRosterRankedStats() {
-    const res = await fetch("/api/roster-ranked-stats");
-    return await res.json();
-}
-
-/*
- * Name:        fetchFlexStats()
- * Arguments:   A string representing the a player's PUUID.
- * Returns:     An object containing player's Flex queue stats.
- * Description: Calls the Riot API to fetch data for a specific match.
- * Effects:     None.
- */
-export async function fetchFlexStats(puuid, name, gameName, tagLine) {
-    const params = new URLSearchParams({
-        puuid,
-        name: name || "",
-        gameName: gameName || "",
-        tagLine: tagLine || "",
-    });
-    const res = await fetch(`/api/player-flex-stats?${params.toString()}`);
-    return await res.json();
-}
-
-/*
  * Name:        syncRankedQueues()
  * Arguments:   None.
  * Returns:     A promise resolving to an object containing match sync results.
@@ -188,6 +132,20 @@ export async function syncRankedQueues() {
 }
 
 /*
+ * Name:        fetchRosterRankedStats()
+ * Arguments:   None.
+ * Returns:     A promise resolving to aggregated Flex and Ranked 5v5 stats for
+ *              all tracked roster players.
+ * Description: Calls the server API to bulk-fetch and aggregate stored ranked
+ *              match stats for the entire roster.
+ * Effects:     None.
+ */
+export async function fetchRosterRankedStats() {
+    const res = await fetch("/api/roster-ranked-stats");
+    return await res.json();
+}
+
+/*
  * Name:        fetchRankedFivesStats()
  * Arguments:   A string representing the player's PUUID.
  * Returns:     An object containing the player's Ranked 5v5 queue stats.
@@ -201,6 +159,24 @@ export async function fetchRankedFivesStats(puuid) {
     );
 
     return await response.json();
+}
+
+/*
+ * Name:        fetchFlexStats()
+ * Arguments:   A string representing the a player's PUUID.
+ * Returns:     An object containing player's Flex queue stats.
+ * Description: Calls the Riot API to fetch data for a specific match.
+ * Effects:     None.
+ */
+export async function fetchFlexStats(puuid, name, gameName, tagLine) {
+    const params = new URLSearchParams({
+        puuid,
+        name: name || "",
+        gameName: gameName || "",
+        tagLine: tagLine || "",
+    });
+    const res = await fetch(`/api/player-flex-stats?${params.toString()}`);
+    return await res.json();
 }
 
 /*
@@ -226,4 +202,48 @@ export async function fetchChampionLeaderboard(championId) {
     }
 
     return result;
+}
+
+/*
+ * Name:        fetchDuoLeaderboard()
+ * Arguments:   None.
+ * Returns:     A promise resolving to aggregate stats and win rates for all
+ *              bot lane and support player pairings.
+ * Description: Calls the server API to aggregate combined Flex and Ranked 5v5
+ *              match records by bottom lane duo pairings.
+ * Effects:     None.
+ */
+export async function fetchDuoLeaderboard() {
+    const response = await fetch("/api/duo-leaderboard");
+    const result = await response.json();
+
+    if (!response.ok) {
+        throw new Error(result.error || "Failed to load duo leaderboard");
+    }
+
+    return result;
+}
+
+/*
+ * Name:        fetchMatchHistory()
+ * Arguments:   A string representing the a player's PUUID.
+ * Returns:     An array of match IDs.
+ * Description: Retrieves the last 20 match IDs for the given PUUID.
+ * Effects:     Calls the Riot API.
+ */
+export async function fetchMatchHistory(puuid) {
+    const response = await fetch(`/api/match-history?puuid=${puuid}&count=20`);
+    return await response.json();
+}
+
+/*
+ * Name:        fetchMatchDetails()
+ * Arguments:   A string representing the match ID.
+ * Returns:     An object containing match details.
+ * Description: Calls the Riot API to fetch data for a specific match.
+ * Effects:     None.
+ */
+export async function fetchMatchDetails(matchId) {
+    const response = await fetch(`/api/match-info?matchId=${matchId}`);
+    return await response.json();
 }

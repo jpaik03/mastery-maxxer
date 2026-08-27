@@ -7,6 +7,11 @@ h2 {
   margin-bottom: 10px;
 }
 
+h3 {
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
 #controls {
   display: flex;
   justify-content: center;
@@ -156,15 +161,25 @@ tbody th .role-header-content {
   width: 17%;
 }
 
-#champion-select {
-  margin: 0 12px 0 6px;
-  padding: 2px 6px;
-  font-size: 11px;
+#fives-leaderboard,
+#flex-leaderboard,
+#pings-leaderboard {
+  width: 70%;
+  margin-top: 10px;
+  margin-bottom: 30px;
+}
+
+#champion-leaderboard {
+  width: 40%;
+  margin-top: 10px;
+  margin-bottom: 30px;
 }
 
 #leaderboard thead th,
 #flex-leaderboard thead th,
-#fives-leaderboard thead th {
+#fives-leaderboard thead th,
+#champion-leaderboard thead th,
+#pings-leaderboard thead th {
   background-color: #e9ecef;
   cursor: pointer;
   user-select: none;
@@ -175,15 +190,10 @@ tbody th .role-header-content {
 
 #leaderboard thead th:hover,
 #flex-leaderboard thead th:hover,
-#fives-leaderboard thead th:hover {
+#fives-leaderboard thead th:hover,
+#champion-leaderboard thead th:hover,
+#pings-leaderboard thead th:hover {
   background-color: #dfe3e6;
-}
-
-#flex-leaderboard,
-#fives-leaderboard {
-  width: 70%;
-  margin-top: 10px;
-  margin-bottom: 30px;
 }
 
 #champion-controls,
@@ -196,6 +206,13 @@ tbody th .role-header-content {
   align-items: center;
   margin-bottom: 10px;
   font-size: 11px;
+}
+
+#champion-search {
+  margin: 0 12px 0 6px;
+  padding: 2px 6px;
+  font-size: 11px;
+  width: 140px;
 }
 
 #champion-mode-select,
@@ -211,24 +228,104 @@ tbody th .role-header-content {
   margin-left: 10px;
 }
 
-#pings-leaderboard {
-  width: 70%;
-  margin-top: 10px;
-  margin-bottom: 30px;
-}
-
-#pings-leaderboard thead th {
-  background-color: #e9ecef;
+#champion-min-games-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 10px;
   cursor: pointer;
   user-select: none;
-  text-align: center;
-  padding: 6px 4px;
-  font-weight: 600;
-  white-space: nowrap;
 }
 
-#pings-leaderboard thead th:hover {
-  background-color: #dfe3e6;
+.champ-dropdown-label {
+  display: inline-flex;
+  align-items: center;
+}
+
+.custom-champ-select {
+  position: relative;
+  display: inline-block;
+  margin: 0 12px 0 6px;
+}
+
+#champion-search {
+  margin: 0;
+  padding: 2px 20px 2px 6px;
+  font-size: 11px;
+  width: 140px;
+  font-family: "Beaufort", Helvetica, Arial, sans-serif;
+  border: 1px solid #ccc;
+  border-radius: 2px;
+  background-color: #fff;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+#champion-search:focus {
+  cursor: text;
+  outline: 1px solid #1a5fb4;
+}
+
+#champion-icon-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 6px;
+  margin-bottom: 10px;
+}
+
+#champion-selected-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  display: block;
+}
+
+.custom-select-arrow {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 7px;
+  color: #666;
+  pointer-events: none;
+}
+
+.custom-select-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  width: 100%;
+  max-height: 180px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 2px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+  font-family: "Beaufort", Helvetica, Arial, sans-serif;
+  font-size: 11px;
+  box-sizing: border-box;
+}
+
+.custom-select-dropdown.open {
+  display: block;
+}
+
+.custom-select-option {
+  padding: 4px 8px;
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.custom-select-option:hover,
+.custom-select-option.selected {
+  background-color: #e9ecef;
 }
 
 .sort-arrow {

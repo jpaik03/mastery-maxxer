@@ -17,8 +17,7 @@ import {
     fetchSummonerData,
     fetchRankedData,
     fetchMasteryData,
-    fetchFlexStats,
-    fetchRankedFivesStats,
+    fetchRosterRankedStats,
     fetchChampionLeaderboard,
     syncRankedQueues,
     syncAndFetchPlayerPeaks,
@@ -134,16 +133,19 @@ let currentProfileSortAsc = false;
 
 let fivesLeaderboardData = [];
 let fivesLeaderboardMode = "wr";
-let currentFivesSortKey = "fivesScore";
-let currentFivesSortAsc = false;
+let currentFivesSortKey = "name";
+let currentFivesSortAsc = true;
 
 let flexLeaderboardData = [];
 let flexLeaderboardMode = "wr";
-let currentFlexSortKey = "flexScore";
-let currentFlexSortAsc = false;
+let currentFlexSortKey = "name";
+let currentFlexSortAsc = true;
 
+let sortedChampionList = [];
+let championNameToIdMap = {};
 let championLeaderboardData = [];
 let championLeaderboardMode = "wr";
+let championShowAllGames = false;
 
 let pingsLeaderboardData = [];
 let pingsDisplayMode = "avg";
@@ -233,14 +235,25 @@ function parseGamesCount(statStr) {
     return match ? parseInt(match[1], 10) : 0;
 }
 
-// Compare two values for sorting (supports numeric and string comparisons)
-function compareValues(valA, valB, isAscending) {
+// Compare two values or objects for sorting with secondary name tie-breaker
+function compareValues(a, b, key, isAscending) {
+    const valA = key && typeof a === "object" && a !== null ? a[key] : a;
+    const valB = key && typeof b === "object" && b !== null ? b[key] : b;
+
     if (typeof valA === "string" && typeof valB === "string") {
-        return isAscending
-            ? valA.localeCompare(valB)
-            : valB.localeCompare(valA);
+        const cmp = valA.localeCompare(valB);
+        if (cmp !== 0) return isAscending ? cmp : -cmp;
+    } else {
+        const numA = typeof valA === "number" ? valA : 0;
+        const numB = typeof valB === "number" ? valB : 0;
+        const diff = numA - numB;
+        if (diff !== 0) return isAscending ? diff : -diff;
     }
-    return isAscending ? valA - valB : valB - valA;
+
+    // Secondary tie-breaker: sort alphabetically by player name if objects
+    const nameA = a?.name || "";
+    const nameB = b?.name || "";
+    return nameA.localeCompare(nameB);
 }
 
 // Format a numeric ping count or average value
@@ -373,26 +386,34 @@ function buildPingRowHtml(p, isTotalMode) {
     `;
 }
 
-// Build normalized ping data bundle for average and total views
-function buildPingsLeaderboardEntry(player, flexStats) {
-    const pings = flexStats.pings || {};
-    const raw = flexStats.rawPings || {};
+// Build normalized ping data bundle for average and total views across Flex and 5s
+function buildPingsLeaderboardEntry(player, flexStats, rankedFivesStats) {
+    const flexPings = flexStats.rawPings || {};
+    const fivesPings = rankedFivesStats?.rawPings || {};
 
-    const avg = {};
     const rawTotals = {};
+    let grandTotal = 0;
 
     PING_KEYS.forEach((key) => {
-        avg[key] = parseFloat(pings[key] || 0);
-        rawTotals[key] = raw[key] || 0;
+        const count = (flexPings[key] || 0) + (fivesPings[key] || 0);
+        rawTotals[key] = count;
+        grandTotal += count;
     });
+    rawTotals.total = grandTotal;
 
-    avg.total = parseFloat(pings.total || 0);
-    rawTotals.total = raw.total || 0;
+    const totalGames =
+        (flexStats.storedMatchCount || 0) +
+        (rankedFivesStats?.storedMatchCount || 0);
+
+    const avg = {};
+    PING_KEYS.forEach((key) => {
+        avg[key] = totalGames > 0 ? rawTotals[key] / totalGames : 0;
+    });
+    avg.total = totalGames > 0 ? rawTotals.total / totalGames : 0;
 
     return {
         name: player.name,
-        gamesCount:
-            flexStats.storedMatchCount || parseGamesCount(flexStats.TOTAL) || 0,
+        gamesCount: totalGames,
         avg,
         raw: rawTotals,
     };
@@ -553,11 +574,7 @@ function renderProfileLeaderboard() {
     if (!tbody) return;
 
     profileLeaderboardData.sort((a, b) =>
-        compareValues(
-            a[currentProfileSortKey],
-            b[currentProfileSortKey],
-            currentProfileSortAsc,
-        ),
+        compareValues(a, b, currentProfileSortKey, currentProfileSortAsc),
     );
 
     tbody.innerHTML = profileLeaderboardData
@@ -577,7 +594,7 @@ function renderFivesLeaderboard() {
 
     const activeSortKey = getResolvedFivesSortKey(currentFivesSortKey);
     fivesLeaderboardData.sort((a, b) =>
-        compareValues(a[activeSortKey], b[activeSortKey], currentFivesSortAsc),
+        compareValues(a, b, activeSortKey, currentFivesSortAsc),
     );
 
     tbody.innerHTML = fivesLeaderboardData
@@ -597,7 +614,7 @@ function renderFlexLeaderboard() {
 
     const activeSortKey = getResolvedFlexSortKey(currentFlexSortKey);
     flexLeaderboardData.sort((a, b) =>
-        compareValues(a[activeSortKey], b[activeSortKey], currentFlexSortAsc),
+        compareValues(a, b, activeSortKey, currentFlexSortAsc),
     );
 
     tbody.innerHTML = flexLeaderboardData
@@ -610,12 +627,44 @@ function renderFlexLeaderboard() {
     );
 }
 
+// Render filtered list of champion options for custom dropdown
+function renderChampionDropdownOptions(filterText = "") {
+    const dropdown = document.getElementById("champion-dropdown");
+    if (!dropdown) return;
+
+    const cleanFilter = filterText.replace(/['’]/g, "").toLowerCase().trim();
+    const filtered = sortedChampionList.filter(({ name }) => {
+        const cleanName = name.replace(/['’]/g, "").toLowerCase();
+        return cleanName.includes(cleanFilter);
+    });
+
+    if (filtered.length === 0) {
+        dropdown.innerHTML = `<div class="custom-select-option" style="color: #888; cursor: default;">No champions</div>`;
+        return;
+    }
+
+    dropdown.innerHTML = filtered
+        .map(
+            ({ id, name }) =>
+                `<div class="custom-select-option" data-id="${id}" data-name="${name}">${name}</div>`,
+        )
+        .join("");
+}
+
 // Render champion-specific winrate/games leaderboard table
 function renderChampionLeaderboard() {
     const tbody = document.getElementById("champion-leaderboard-body");
     if (!tbody) return;
 
-    const sortedPlayers = [...championLeaderboardData].sort((a, b) => {
+    const filteredPlayers = championLeaderboardData.filter((player) => {
+        if (player.games === 0) return false;
+        if (championShowAllGames || championLeaderboardMode === "games") {
+            return true;
+        }
+        return player.games >= 3;
+    });
+
+    const sortedPlayers = [...filteredPlayers].sort((a, b) => {
         if (championLeaderboardMode === "games") {
             return (
                 b.games - a.games ||
@@ -629,6 +678,11 @@ function renderChampionLeaderboard() {
             a.name.localeCompare(b.name)
         );
     });
+
+    if (sortedPlayers.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="padding: 10px; color: #888;">No games recorded on this champion.</td></tr>`;
+        return;
+    }
 
     tbody.innerHTML = sortedPlayers
         .map(buildChampionLeaderboardRowHtml)
@@ -656,7 +710,13 @@ function renderPingsLeaderboard() {
                   ? b.raw[currentPingSortKey]
                   : b.avg[currentPingSortKey];
 
-        return compareValues(valA, valB, currentPingSortAsc);
+        // Pass resolved values with player objects for name tie-breaking
+        return compareValues(
+            { ...a, _sortVal: valA },
+            { ...b, _sortVal: valB },
+            "_sortVal",
+            currentPingSortAsc,
+        );
     });
 
     tbody.innerHTML = pingsLeaderboardData
@@ -772,12 +832,50 @@ function setupFlexLeaderboardSorting() {
     }
 }
 
-// Bind event listeners for champion-specific leaderboard selection and sorting mode
+// Bind event listeners for custom champion searchable dropdown
 function setupChampionLeaderboard() {
-    const championSelect = document.getElementById("champion-select");
+    const container = document.getElementById("champ-select-container");
+    const searchInput = document.getElementById("champion-search");
+    const dropdown = document.getElementById("champion-dropdown");
     const modeSelect = document.getElementById("champion-mode-select");
 
-    championSelect?.addEventListener("change", loadChampionLeaderboard);
+    const showAllCb = document.getElementById("champion-show-all-cb");
+    showAllCb?.addEventListener("change", (e) => {
+        championShowAllGames = e.target.checked;
+        renderChampionLeaderboard();
+    });
+
+    searchInput?.addEventListener("focus", () => {
+        renderChampionDropdownOptions(searchInput.value);
+        dropdown?.classList.add("open");
+        searchInput.select();
+    });
+
+    searchInput?.addEventListener("input", () => {
+        renderChampionDropdownOptions(searchInput.value);
+        dropdown?.classList.add("open");
+        loadChampionLeaderboard();
+    });
+
+    // Use mousedown to capture selection before input blur events fire
+    dropdown?.addEventListener("mousedown", (e) => {
+        const option = e.target.closest(".custom-select-option");
+        if (!option || !option.dataset.id) return;
+
+        e.preventDefault();
+        const championId = option.dataset.id;
+        searchInput.value = "";
+        dropdown.classList.remove("open");
+        searchInput.blur();
+        loadChampionLeaderboard(championId);
+    });
+
+    document.addEventListener("mousedown", (e) => {
+        if (!container?.contains(e.target)) {
+            dropdown?.classList.remove("open");
+        }
+    });
+
     modeSelect?.addEventListener("change", (event) => {
         championLeaderboardMode = event.target.value;
         renderChampionLeaderboard();
@@ -857,25 +955,46 @@ async function initChampionData() {
             headerEl.innerHTML = `Mastery Champions (out of ${totalChampionCount})<span class="sort-arrow"></span>`;
         }
 
-        const championSelect = document.getElementById("champion-select");
-        if (championSelect) {
-            championSelect.innerHTML = Object.entries(championMap)
-                .sort(([, nameA], [, nameB]) => nameA.localeCompare(nameB))
-                .map(([id, name]) => `<option value="${id}">${name}</option>`)
-                .join("");
+        // Sort names ignoring apostrophes and special characters
+        const sortedChamps = Object.entries(championMap).sort(
+            ([, nameA], [, nameB]) => {
+                const cleanA = nameA.replace(/['’]/g, "").toLowerCase();
+                const cleanB = nameB.replace(/['’]/g, "").toLowerCase();
+                return cleanA.localeCompare(cleanB);
+            },
+        );
+
+        championNameToIdMap = {};
+        sortedChampionList = sortedChamps.map(([id, name]) => {
+            championNameToIdMap[name.toLowerCase()] = id;
+            return { id, name };
+        });
+
+        const searchInput = document.getElementById("champion-search");
+        if (searchInput) {
+            searchInput.value = "";
         }
+
+        renderChampionDropdownOptions();
     }
 }
 
 // Query aggregate champion statistics across the roster and populate leaderboard
-async function loadChampionLeaderboard() {
-    const championSelect = document.getElementById("champion-select");
-    const championStatus = document.getElementById("champion-status");
-    const championId = championSelect?.value;
+async function loadChampionLeaderboard(explicitChampionId = null) {
+    const searchInput = document.getElementById("champion-search");
+    const iconContainer = document.getElementById("champion-icon-container");
+
+    const query = searchInput?.value?.trim().toLowerCase();
+    const championId = explicitChampionId || championNameToIdMap[query];
 
     if (!championId) return;
 
-    championStatus.textContent = "Loading...";
+    // Update champion icon display
+    if (iconContainer) {
+        const champName = championMap[championId];
+        const iconUrl = getChampIconUrl(champName);
+        iconContainer.innerHTML = `<img src="${iconUrl}" alt="${champName}" title="${champName}" id="champion-selected-icon" />`;
+    }
 
     try {
         const result = await fetchChampionLeaderboard(championId);
@@ -896,33 +1015,19 @@ async function loadChampionLeaderboard() {
         });
 
         renderChampionLeaderboard();
-        championStatus.textContent = "";
     } catch (error) {
         console.error(error);
-        championStatus.textContent = `Error: ${error.message}`;
     }
 }
 
-// Fetch a single player's full profile and update all tables
-async function fetchPlayerProfile(player) {
-    const account = await fetchRiotAccountByPuuid(player.puuid);
-    if (!account.puuid) {
-        throw new Error(`Could not find profile for ${player.name}`);
-    }
-
-    const [summoner, ranked, masteries, flexStats, rankedFivesStats] =
-        await Promise.all([
-            fetchSummonerData(player.puuid),
-            fetchRankedData(player.puuid),
-            fetchMasteryData(player.puuid),
-            fetchFlexStats(
-                player.puuid,
-                player.name,
-                account.gameName,
-                account.tagLine,
-            ),
-            fetchRankedFivesStats(player.puuid),
-        ]);
+// Fetch a single player's live profile and update all tables using cached DB stats
+async function fetchPlayerProfile(player, rankedStats) {
+    const [account, summoner, ranked, masteries] = await Promise.all([
+        fetchRiotAccountByPuuid(player.puuid),
+        fetchSummonerData(player.puuid),
+        fetchRankedData(player.puuid),
+        fetchMasteryData(player.puuid),
+    ]);
 
     const { solo, flex, fives } = extractQueueEntries(ranked);
     const { totalPoints, totalPointsText, playedChampsCount, top10Text } =
@@ -930,42 +1035,42 @@ async function fetchPlayerProfile(player) {
 
     const peakData = await syncAndFetchPlayerPeaks(player.puuid, solo, flex);
 
-    // Append profile table columns
-    appendProfileTableColumns({
-        name: player.name,
-        account,
-        summoner,
-        soloText: formatRank(solo),
-        top10Text,
-        soloPeak: formatPeakDisplay(peakData.peakSolo),
-    });
+    const flexStats = rankedStats[player.puuid]?.flex || {};
+    const rankedFivesStats = rankedStats[player.puuid]?.fives || {};
 
-    // Accumulate profile summary leaderboard dataset
-    profileLeaderboardData.push({
-        name: player.name,
-        soloScore: getRankScore(solo),
-        soloHtml: formatRank(solo),
-        masteryPoints: totalPoints,
-        masteryText: totalPointsText,
-        level: summoner.summonerLevel || 0,
-        playedChampsCount,
-    });
-
-    // Accumulate 5s leaderboard dataset
-    fivesLeaderboardData.push(
-        buildFivesLeaderboardEntry(player, fives, rankedFivesStats),
-    );
-
-    // Accumulate flex leaderboard dataset
-    flexLeaderboardData.push(
-        buildFlexLeaderboardEntry(player, flex, flexStats),
-    );
-
-    // Accumulate pings leaderboard dataset
-    pingsLeaderboardData.push(buildPingsLeaderboardEntry(player, flexStats));
+    return {
+        profileData: {
+            name: player.name,
+            account,
+            summoner,
+            soloText: formatRank(solo),
+            top10Text,
+            soloPeak: formatPeakDisplay(peakData.peakSolo),
+        },
+        profileLeaderboard: {
+            name: player.name,
+            soloScore: getRankScore(solo),
+            soloHtml: formatRank(solo),
+            masteryPoints: totalPoints,
+            masteryText: totalPointsText,
+            level: summoner.summonerLevel || 0,
+            playedChampsCount,
+        },
+        fivesLeaderboard: buildFivesLeaderboardEntry(
+            player,
+            fives,
+            rankedFivesStats,
+        ),
+        flexLeaderboard: buildFlexLeaderboardEntry(player, flex, flexStats),
+        pingsLeaderboard: buildPingsLeaderboardEntry(
+            player,
+            flexStats,
+            rankedFivesStats,
+        ),
+    };
 }
 
-// Clear tables, fetch metadata, and sequentially load all player profiles
+// Clear tables, bulk fetch DB data, and load all player profiles concurrently
 async function loadAllProfiles() {
     const statusMsg = document.getElementById("status-msg");
 
@@ -976,22 +1081,51 @@ async function loadAllProfiles() {
     pingsLeaderboardData = [];
 
     try {
-        statusMsg.innerText = "Checking for new Flex and Ranked 5v5 matches...";
+        statusMsg.innerText = "Syncing matches & loading statistics...";
 
+        // Sync new matches and initialize champ metadata
         await syncRankedQueues();
         await initChampionData();
-        await loadChampionLeaderboard();
 
-        for (let i = 0; i < PLAYERS.length; i++) {
-            const player = PLAYERS[i];
-            statusMsg.innerText = `Loading (${i + 1}/${PLAYERS.length}): ${player.name}...`;
+        // Fetch all DB statistics in a single bulk query
+        const rosterRankedStats = await fetchRosterRankedStats();
 
-            await fetchPlayerProfile(player);
-            renderProfileLeaderboard();
-            renderFivesLeaderboard();
-            renderFlexLeaderboard();
-            renderPingsLeaderboard();
+        // Load players in small batches with slight delays to respect Riot rate limits
+        statusMsg.innerText = "Fetching player profiles...";
+
+        const BATCH_SIZE = 2;
+        const DELAY_BETWEEN_BATCHES_MS = 250;
+        const results = [];
+
+        for (let i = 0; i < PLAYERS.length; i += BATCH_SIZE) {
+            const batch = PLAYERS.slice(i, i + BATCH_SIZE);
+            const batchResults = await Promise.all(
+                batch.map((player) =>
+                    fetchPlayerProfile(player, rosterRankedStats),
+                ),
+            );
+            results.push(...batchResults);
+            if (i + BATCH_SIZE < PLAYERS.length) {
+                await new Promise((resolve) =>
+                    setTimeout(resolve, DELAY_BETWEEN_BATCHES_MS),
+                );
+            }
         }
+
+        // Populate datasets in strictly defined PLAYERS order
+        for (const res of results) {
+            appendProfileTableColumns(res.profileData);
+            profileLeaderboardData.push(res.profileLeaderboard);
+            fivesLeaderboardData.push(res.fivesLeaderboard);
+            flexLeaderboardData.push(res.flexLeaderboard);
+            pingsLeaderboardData.push(res.pingsLeaderboard);
+        }
+
+        // Render all tables once complete
+        renderProfileLeaderboard();
+        renderFivesLeaderboard();
+        renderFlexLeaderboard();
+        renderPingsLeaderboard();
 
         statusMsg.innerText = "";
     } catch (error) {

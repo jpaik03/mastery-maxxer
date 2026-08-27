@@ -228,22 +228,36 @@
           <tbody id="flex-leaderboard-body"></tbody>
         </table>
 
-        <!-- Champion Win Rate Leaderboard (Flex & 5v5 Combined) -->
-        <h2>Champion Win Rate Leaderboard (Flex & 5v5 Combined)</h2>
+        <!-- Flex & 5s Stats -->
+        <h2>Flex & 5s Stats</h2>
+
+        <h3>Champ Winrate</h3>
         <div id="champion-controls">
-          <label>
+          <label class="champ-dropdown-label">
             <strong>Champion:</strong>
-            <select id="champion-select"></select>
+            <div class="custom-champ-select" id="champ-select-container">
+              <input
+                type="text"
+                id="champion-search"
+                placeholder="Select champion..."
+                autocomplete="off" />
+              <span class="custom-select-arrow">▼</span>
+              <div class="custom-select-dropdown" id="champion-dropdown"></div>
+            </div>
           </label>
           <label>
             <strong>Rank by:</strong>
             <select id="champion-mode-select">
-              <option value="wr" selected>Win Rate</option>
+              <option value="wr" selected>Win Rate (Min 3 games)</option>
               <option value="games">Games Played</option>
             </select>
           </label>
-          <span id="champion-status"></span>
+          <label id="champion-min-games-label">
+            <input type="checkbox" id="champion-show-all-cb" />
+            Show all (< 3 games)
+          </label>
         </div>
+        <div id="champion-icon-container"></div>
 
         <table id="champion-leaderboard">
           <thead>
@@ -258,8 +272,8 @@
           <tbody id="champion-leaderboard-body"></tbody>
         </table>
 
-        <!-- Ping Chart -->
-        <h2>Stop pinging me (S26 Flex)</h2>
+        <!-- Stop pinging me -->
+        <h3>Stop pinging me</h3>
         <div id="pings-controls">
           <label style="cursor: pointer; user-select: none">
             <strong>Display:</strong>

@@ -223,13 +223,13 @@ async function ingestPlayerMatches(matchIds) {
     }
 }
 
-// Discover and collect all new unique match IDs across the roster for Flex and Ranked 5v5
+// Discover and collect all new unique match IDs across the roster for Flex and Ranked 5v5 in parallel
 async function discoverRosterRankedMatchIds(trackedPuuids, seasonStartTime) {
     const uniqueMatchIds = new Set();
     let discoveredFlex = 0;
     let discoveredFives = 0;
 
-    for (const puuid of trackedPuuids) {
+    const playerTasks = Array.from(trackedPuuids).map(async (puuid) => {
         const { data: player, error: playerError } = await supabase
             .from("players")
             .select("last_synced_at")
@@ -247,6 +247,12 @@ async function discoverRosterRankedMatchIds(trackedPuuids, seasonStartTime) {
             fetchMatchIdsByQueue(puuid, RANKED_FIVES_QUEUE_ID, startTime),
         ]);
 
+        return { flexMatchIds, fivesMatchIds };
+    });
+
+    const results = await Promise.all(playerTasks);
+
+    for (const { flexMatchIds, fivesMatchIds } of results) {
         discoveredFlex += flexMatchIds.length;
         discoveredFives += fivesMatchIds.length;
 
@@ -653,6 +659,47 @@ app.get("/api/match-info", async (req, res) => {
 });
 
 /* DATABASE / COMPLEX ROUTES */
+
+// Bulk fetch aggregated Flex & 5s stats for the entire roster in a single query
+app.get("/api/roster-ranked-stats", async (req, res) => {
+    try {
+        const { data: allMatches, error } = await supabase
+            .from("player_matches")
+            .select("puuid,queue_id,team_position,win,pings")
+            .in("queue_id", [RANKED_FLEX_QUEUE_ID, RANKED_FIVES_QUEUE_ID])
+            .gte("game_creation", SEASON_2026_START * 1000);
+
+        if (error) throw error;
+
+        // Bucket matches by player and queue
+        const grouped = {};
+        for (const puuid of TRACKED_PUUIDS) {
+            grouped[puuid] = { flex: [], fives: [] };
+        }
+
+        for (const m of allMatches || []) {
+            if (!grouped[m.puuid]) continue;
+            if (m.queue_id === RANKED_FLEX_QUEUE_ID) {
+                grouped[m.puuid].flex.push(m);
+            } else if (m.queue_id === RANKED_FIVES_QUEUE_ID) {
+                grouped[m.puuid].fives.push(m);
+            }
+        }
+
+        // Compute aggregations in memory on server
+        const results = {};
+        for (const puuid of TRACKED_PUUIDS) {
+            results[puuid] = {
+                flex: computeMatchAggregations(grouped[puuid].flex),
+                fives: computeMatchAggregations(grouped[puuid].fives),
+            };
+        }
+
+        res.json(results);
+    } catch (error) {
+        handleApiError(res, error, "Failed to fetch roster ranked stats");
+    }
+});
 
 // Sync & Fetch Flex (440) Role Breakdown for a single player
 app.get("/api/player-flex-stats", async (req, res) => {

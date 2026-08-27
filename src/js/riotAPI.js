@@ -130,6 +130,20 @@ export async function fetchMatchDetails(matchId) {
 }
 
 /*
+ * Name:        fetchRosterRankedStats()
+ * Arguments:   None.
+ * Returns:     A promise resolving to aggregated Flex and Ranked 5v5 stats for
+ *              all tracked roster players.
+ * Description: Calls the server API to bulk-fetch and aggregate stored ranked
+ *              match stats for the entire roster.
+ * Effects:     None.
+ */
+export async function fetchRosterRankedStats() {
+    const res = await fetch("/api/roster-ranked-stats");
+    return await res.json();
+}
+
+/*
  * Name:        fetchFlexStats()
  * Arguments:   A string representing the a player's PUUID.
  * Returns:     An object containing player's Flex queue stats.
@@ -147,6 +161,14 @@ export async function fetchFlexStats(puuid, name, gameName, tagLine) {
     return await res.json();
 }
 
+/*
+ * Name:        syncRankedQueues()
+ * Arguments:   None.
+ * Returns:     A promise resolving to an object containing match sync results.
+ * Description: Triggers a bulk incremental sync of Flex and Ranked 5v5 matches
+ *              for all tracked roster members from the Riot API into Supabase.
+ * Effects:     Updates stored matches and sync timestamps on the server/DB.
+ */
 export async function syncRankedQueues() {
     const response = await fetch("/api/sync-roster-ranked", {
         method: "POST",
@@ -165,6 +187,14 @@ export async function syncRankedQueues() {
     return result;
 }
 
+/*
+ * Name:        fetchRankedFivesStats()
+ * Arguments:   A string representing the player's PUUID.
+ * Returns:     An object containing the player's Ranked 5v5 queue stats.
+ * Description: Calls the server API to fetch aggregated Ranked 5v5 stats for
+ *              a specific player.
+ * Effects:     None.
+ */
 export async function fetchRankedFivesStats(puuid) {
     const response = await fetch(
         `/api/player-ranked-fives-stats?puuid=${encodeURIComponent(puuid)}`,
@@ -173,6 +203,15 @@ export async function fetchRankedFivesStats(puuid) {
     return await response.json();
 }
 
+/*
+ * Name:        fetchChampionLeaderboard()
+ * Arguments:   An integer or string representing the champion ID.
+ * Returns:     A promise resolving to leaderboard rankings and winrate stats
+ *              for the specified champion.
+ * Description: Calls the server API to aggregate combined Flex and Ranked 5v5
+ *              match data across all players for a given champion.
+ * Effects:     None.
+ */
 export async function fetchChampionLeaderboard(championId) {
     const response = await fetch(
         `/api/champion-leaderboard?championId=${encodeURIComponent(

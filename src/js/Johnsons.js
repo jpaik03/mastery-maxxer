@@ -789,7 +789,7 @@ function setupProfileLeaderboardSorting() {
     });
 }
 
-// Bind event listeners for 5s leaderboard column headers and view toggles
+// Bind event listeners for 5s leaderboard column headers
 function setupFivesLeaderboardSorting() {
     document
         .querySelectorAll("#fives-leaderboard th[data-sort]")
@@ -805,17 +805,9 @@ function setupFivesLeaderboardSorting() {
                 renderFivesLeaderboard();
             });
         });
-
-    const modeSelect = document.getElementById("fives-leaderboard-mode-select");
-    if (modeSelect) {
-        modeSelect.addEventListener("change", (e) => {
-            fivesLeaderboardMode = e.target.value;
-            renderFivesLeaderboard();
-        });
-    }
 }
 
-// Bind event listeners for flex leaderboard column headers and view toggles
+// Bind event listeners for flex leaderboard column headers
 function setupFlexLeaderboardSorting() {
     document
         .querySelectorAll("#flex-leaderboard th[data-sort]")
@@ -831,11 +823,16 @@ function setupFlexLeaderboardSorting() {
                 renderFlexLeaderboard();
             });
         });
+}
 
-    const modeSelect = document.getElementById("flex-leaderboard-mode-select");
-    if (modeSelect) {
-        modeSelect.addEventListener("change", (e) => {
+// Bind shared sort by mode select for both Ranked 5s and Flex tables
+function setupSharedRankedSorting() {
+    const sharedSelect = document.getElementById("ranked-shared-mode-select");
+    if (sharedSelect) {
+        sharedSelect.addEventListener("change", (e) => {
+            fivesLeaderboardMode = e.target.value;
             flexLeaderboardMode = e.target.value;
+            renderFivesLeaderboard();
             renderFlexLeaderboard();
         });
     }
@@ -1153,6 +1150,7 @@ document.addEventListener("DOMContentLoaded", () => {
     setupProfileLeaderboardSorting();
     setupFivesLeaderboardSorting();
     setupFlexLeaderboardSorting();
+    setupSharedRankedSorting();
     setupChampionLeaderboard();
     setupPingsLeaderboardSorting();
     setupChampIconHighlighting();

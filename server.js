@@ -174,14 +174,17 @@ async function fetchMatchIdsByQueue(puuid, queueId, startTime) {
 
 // Ingest match details into Supabase if not already present and cross-populate tracked roster participants
 async function ingestPlayerMatches(matchIds) {
-    for (const matchId of matchIds) {
-        const { count, error: countError } = await supabase
+    const uniqueIds = Array.from(new Set(matchIds));
+
+    for (const matchId of uniqueIds) {
+        const { data: existing, error: countError } = await supabase
             .from("player_matches")
-            .select("id", { count: "exact", head: true })
-            .eq("match_id", matchId);
+            .select("id")
+            .eq("match_id", matchId)
+            .limit(1);
 
         if (countError) throw countError;
-        if (count > 0) continue;
+        if (existing && existing.length > 0) continue;
 
         const matchResponse = await fetchWithRetry(() =>
             regionalClient.get(`/lol/match/v5/matches/${matchId}`),
@@ -305,6 +308,18 @@ async function getStoredRankedRowCounts(seasonStartTime) {
 
 /* STAT AGGREGATION HELPERS */
 
+// Normalize position names from Riot API
+function normalizePosition(pos) {
+    if (!pos) return "UNKNOWN";
+    const p = pos.toUpperCase();
+    if (p === "TOP") return "TOP";
+    if (p === "JUNGLE" || p === "JGL") return "JUNGLE";
+    if (p === "MIDDLE" || p === "MID") return "MIDDLE";
+    if (p === "BOTTOM" || p === "BOT") return "BOTTOM";
+    if (p === "UTILITY" || p === "SUP" || p === "SUPPORT") return "UTILITY";
+    return "UNKNOWN";
+}
+
 // Aggregate role wins and total games played
 function aggregateRoleStats(matches) {
     const roles = {
@@ -316,15 +331,21 @@ function aggregateRoleStats(matches) {
     };
 
     let totalWins = 0;
+    let totalGames = 0;
 
     for (const match of matches || []) {
-        const position = match.team_position?.toUpperCase();
+        // Exclude remakes / invalid games if flag exists
+        if (match.raw_participant?.gameEndedInEarlySurrender) continue;
+
+        const position = normalizePosition(match.team_position);
         if (roles[position]) {
             roles[position].total++;
             if (match.win) {
                 roles[position].wins++;
             }
         }
+
+        totalGames++;
         if (match.win) {
             totalWins++;
         }
@@ -339,7 +360,7 @@ function aggregateRoleStats(matches) {
         MID: formatWinRate(roles.MIDDLE.wins, roles.MIDDLE.total),
         BOT: formatWinRate(roles.BOTTOM.wins, roles.BOTTOM.total),
         SUP: formatWinRate(roles.UTILITY.wins, roles.UTILITY.total),
-        TOTAL: formatWinRate(totalWins, matches?.length || 0),
+        TOTAL: formatWinRate(totalWins, totalGames),
     };
 }
 
@@ -663,13 +684,28 @@ app.get("/api/match-info", async (req, res) => {
 // Bulk fetch aggregated Flex & 5s stats for the entire roster in a single query
 app.get("/api/roster-ranked-stats", async (req, res) => {
     try {
-        const { data: allMatches, error } = await supabase
-            .from("player_matches")
-            .select("puuid,queue_id,team_position,win,pings")
-            .in("queue_id", [RANKED_FLEX_QUEUE_ID, RANKED_FIVES_QUEUE_ID])
-            .gte("game_creation", SEASON_2026_START * 1000);
+        let allMatches = [];
+        let from = 0;
+        const step = 1000;
 
-        if (error) throw error;
+        // Page through Supabase results to bypass the default 1000 row cap
+        while (true) {
+            const { data, error } = await supabase
+                .from("player_matches")
+                .select(
+                    "puuid,queue_id,team_position,win,pings,game_creation,raw_participant",
+                )
+                .in("queue_id", [RANKED_FLEX_QUEUE_ID, RANKED_FIVES_QUEUE_ID])
+                .gte("game_creation", SEASON_2026_START * 1000)
+                .range(from, from + step - 1);
+
+            if (error) throw error;
+            if (!data || data.length === 0) break;
+
+            allMatches.push(...data);
+            if (data.length < step) break;
+            from += step;
+        }
 
         // Bucket matches by player and queue
         const grouped = {};
@@ -677,7 +713,7 @@ app.get("/api/roster-ranked-stats", async (req, res) => {
             grouped[puuid] = { flex: [], fives: [] };
         }
 
-        for (const m of allMatches || []) {
+        for (const m of allMatches) {
             if (!grouped[m.puuid]) continue;
             if (m.queue_id === RANKED_FLEX_QUEUE_ID) {
                 grouped[m.puuid].flex.push(m);

@@ -169,12 +169,83 @@ tbody th .role-header-content {
   width: 17%;
 }
 
+#ranked-headers-row {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 30px;
+  width: 95%;
+  margin: 10px auto 0 auto;
+}
+
+.ranked-header-cell {
+  flex: 1;
+  text-align: center;
+}
+
+.ranked-header-cell h2 {
+  margin: 0;
+  text-align: center;
+}
+
+#ranked-shared-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0 -15px 4px -15px;
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 2;
+}
+
+#ranked-shared-mode-select {
+  margin-left: 6px;
+  padding: 2px 6px;
+  font-size: 11px;
+}
+
+#ranked-side-by-side {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  width: 95%;
+  margin: 8px auto 30px auto;
+}
+
+.ranked-table-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
 #fives-leaderboard,
-#flex-leaderboard,
+#flex-leaderboard {
+  width: 100%;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+#fives-leaderboard th#fives-rank {
+  width: 16%;
+}
+
+#fives-leaderboard th:not(#fives-rank) {
+  width: 12%;
+}
+
+#flex-leaderboard th#flex-rank {
+  width: 16%;
+}
+
+#flex-leaderboard th:not(#flex-rank) {
+  width: 12%;
+}
+
 #pings-leaderboard {
-  width: 65%;
-  margin-top: 10px;
-  margin-bottom: 30px;
+  width: 55%;
+  margin: 10px auto 30px auto;
+  font-size: 13px !important;
 }
 
 #pings-leaderboard th#pings-total-header {
@@ -187,8 +258,7 @@ tbody th .role-header-content {
 
 #champion-leaderboard {
   width: 40%;
-  margin-top: 10px;
-  margin-bottom: 30px;
+  margin: 10px auto 30px auto;
 }
 
 #leaderboard thead th,
@@ -213,8 +283,6 @@ tbody th .role-header-content {
 }
 
 #champion-controls,
-#flex-leaderboard-controls,
-#fives-leaderboard-controls,
 #leaderboard-controls,
 #pings-controls {
   display: flex;
@@ -225,8 +293,6 @@ tbody th .role-header-content {
 }
 
 #champion-mode-select,
-#flex-leaderboard-mode-select,
-#fives-leaderboard-mode-select,
 #pings-mode-select {
   margin-left: 6px;
   padding: 2px 6px;
@@ -371,7 +437,7 @@ tbody th .role-header-content {
 }
 
 #view-ranked table {
-  font-size: 14px;
+  font-size: 11px;
   line-height: 1.4;
 }
 
@@ -382,17 +448,15 @@ tbody th .role-header-content {
 }
 
 #view-ranked #champion-controls,
-#view-ranked #flex-leaderboard-controls,
-#view-ranked #fives-leaderboard-controls,
 #view-ranked #pings-controls {
-  font-size: 15px;
+  font-size: 12px;
 }
 
 #view-ranked #champion-search,
 #view-ranked select {
-  font-size: 14px;
+  font-size: 11px;
 }
 
 #view-ranked .custom-select-dropdown {
-  font-size: 14px;
+  font-size: 11px;
 }

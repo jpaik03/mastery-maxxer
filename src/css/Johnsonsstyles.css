@@ -225,6 +225,14 @@ tbody th .role-header-content {
   margin: 10px auto 30px auto;
 }
 
+#champion-leaderboard th[data-sort="kda"] {
+  width: 26%;
+}
+
+#champion-leaderboard th:not([data-sort="kda"]) {
+  width: calc(74% / 5);
+}
+
 #leaderboard th#header-champs {
   width: 32%;
 }
@@ -329,7 +337,6 @@ tbody th .role-header-content {
 }
 
 #ranked-shared-mode-select,
-#champion-mode-select,
 #pings-mode-select {
   margin-left: 6px;
   padding: 3px 8px;
@@ -459,7 +466,6 @@ tbody th .role-header-content {
 
 #view-ranked #champion-search,
 #view-ranked #duo-player-search,
-#view-ranked #champion-mode-select,
 #view-ranked #pings-mode-select,
 #view-ranked #ranked-shared-mode-select {
   font-size: 14px;

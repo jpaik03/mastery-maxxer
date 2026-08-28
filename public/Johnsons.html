@@ -238,6 +238,7 @@
         <!-- Flex & 5s Stats -->
         <h2>Flex & 5s Stats</h2>
 
+        <!-- Champ Winrate -->
         <h3>Champ Winrate</h3>
         <div id="champion-controls">
           <label class="champ-dropdown-label">
@@ -252,13 +253,6 @@
               <div class="custom-select-dropdown" id="champion-dropdown"></div>
             </div>
           </label>
-          <label>
-            <strong>Rank by:</strong>
-            <select id="champion-mode-select">
-              <option value="wr" selected>Win Rate (Min 3 games)</option>
-              <option value="games">Games Played</option>
-            </select>
-          </label>
           <label id="champion-min-games-label">
             <input type="checkbox" id="champion-show-all-cb" />
             Show all (< 3 games)
@@ -270,11 +264,12 @@
         <table id="champion-leaderboard">
           <thead>
             <tr>
-              <th>Rank</th>
-              <th>Player</th>
-              <th>W-L</th>
-              <th>Win Rate</th>
-              <th>Games</th>
+              <th data-sort="rank">Rank<span class="sort-arrow"></span></th>
+              <th data-sort="player">Player<span class="sort-arrow"></span></th>
+              <th data-sort="wl">W-L<span class="sort-arrow"></span></th>
+              <th data-sort="wr">Win Rate<span class="sort-arrow"></span></th>
+              <th data-sort="kda">KDA<span class="sort-arrow"></span></th>
+              <th data-sort="games">Games<span class="sort-arrow"></span></th>
             </tr>
           </thead>
           <tbody id="champion-leaderboard-body"></tbody>
@@ -292,7 +287,9 @@
                 placeholder="All players..."
                 autocomplete="off" />
               <span class="custom-select-arrow">▼</span>
-              <div class="custom-select-dropdown" id="duo-player-dropdown"></div>
+              <div
+                class="custom-select-dropdown"
+                id="duo-player-dropdown"></div>
             </div>
           </label>
           <label id="duo-min-games-label">

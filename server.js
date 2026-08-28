@@ -830,7 +830,7 @@ app.get("/api/champion-leaderboard", async (req, res) => {
     try {
         const { data: matches, error } = await supabase
             .from("player_matches")
-            .select("puuid,win")
+            .select("puuid,win,raw_participant")
             .eq("champion_id", championId)
             .in("queue_id", [RANKED_FLEX_QUEUE_ID, RANKED_FIVES_QUEUE_ID]);
 
@@ -843,6 +843,9 @@ app.get("/api/champion-leaderboard", async (req, res) => {
                 wins: 0,
                 losses: 0,
                 games: 0,
+                kills: 0,
+                deaths: 0,
+                assists: 0,
             };
 
             current.games += 1;
@@ -852,13 +855,35 @@ app.get("/api/champion-leaderboard", async (req, res) => {
                 current.losses += 1;
             }
 
+            const p = match.raw_participant || {};
+            current.kills += p.kills || 0;
+            current.deaths += p.deaths || 0;
+            current.assists += p.assists || 0;
+
             statsByPuuid.set(match.puuid, current);
         }
 
-        const players = Array.from(statsByPuuid.values()).map((player) => ({
-            ...player,
-            winRate: player.games > 0 ? (player.wins / player.games) * 100 : 0,
-        }));
+        const players = Array.from(statsByPuuid.values()).map((player) => {
+            const avgKills = player.games > 0 ? player.kills / player.games : 0;
+            const avgDeaths =
+                player.games > 0 ? player.deaths / player.games : 0;
+            const avgAssists =
+                player.games > 0 ? player.assists / player.games : 0;
+            const kdaRatio =
+                player.deaths === 0
+                    ? player.kills + player.assists
+                    : (player.kills + player.assists) / player.deaths;
+
+            return {
+                ...player,
+                winRate:
+                    player.games > 0 ? (player.wins / player.games) * 100 : 0,
+                avgKills,
+                avgDeaths,
+                avgAssists,
+                kdaRatio,
+            };
+        });
 
         res.json({ championId, players });
     } catch (error) {

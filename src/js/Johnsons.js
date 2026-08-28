@@ -144,8 +144,11 @@ let totalChampionCount = 0;
 let sortedChampionList = [];
 let championNameToIdMap = {};
 let championLeaderboardData = [];
-let championLeaderboardMode = "wr";
+let currentChampionSortKey = "wr";
+let currentChampionSortAsc = false;
 let championShowAllGames = false;
+let championVisibleCount = 10;
+let championIsShowAllExpanded = false;
 
 let duoLeaderboardData = [];
 let currentDuoSortKey = "wr";
@@ -364,15 +367,31 @@ function buildFlexLeaderboardRowHtml(p) {
     `;
 }
 
+// Return highlight CSS class based on KDA ratio threshold
+function getKdaHighlightClass(kdaRatio, games) {
+    if (!games || games === 0) return "";
+    if (kdaRatio > 1.0) return "wr-positive";
+    if (kdaRatio < 1.0) return "wr-negative";
+    return "";
+}
+
 // Generate an HTML table row for the champion-specific leaderboard
-function buildChampionLeaderboardRowHtml(player, index) {
+function buildChampionLeaderboardRowHtml(player) {
     const wrClass = getWinrateHighlightClass(player.winRate, player.games);
+    const kdaClass = getKdaHighlightClass(player.kdaRatio, player.games);
+    const kdaRatioText =
+        player.deaths === 0 && (player.kills > 0 || player.assists > 0)
+            ? "Perfect"
+            : player.kdaRatio.toFixed(2);
+    const kdaDisplay = `${player.avgKills.toFixed(1)}/${player.avgDeaths.toFixed(1)}/${player.avgAssists.toFixed(1)} (${kdaRatioText})`;
+
     return `
         <tr>
-            <td><strong>${index + 1}</strong></td>
+            <td><strong>${player.displayRank}</strong></td>
             <td><strong>${player.name}</strong></td>
             <td>${player.wins}-${player.losses}</td>
             <td class="${wrClass}">${player.games > 0 ? `${player.winRate.toFixed(1)}%` : "—"}</td>
+            <td class="${kdaClass}">${player.games > 0 ? kdaDisplay : "—"}</td>
             <td>${player.games}</td>
         </tr>
     `;
@@ -675,35 +694,115 @@ function renderChampionLeaderboard() {
 
     const filteredPlayers = championLeaderboardData.filter((player) => {
         if (player.games === 0) return false;
-        if (championShowAllGames || championLeaderboardMode === "games") {
-            return true;
-        }
+        if (championShowAllGames) return true;
         return player.games >= 3;
     });
 
-    const sortedPlayers = [...filteredPlayers].sort((a, b) => {
-        if (championLeaderboardMode === "games") {
-            return (
-                b.games - a.games ||
-                b.winRate - a.winRate ||
-                a.name.localeCompare(b.name)
-            );
-        }
-        return (
-            b.winRate - a.winRate ||
-            b.games - a.games ||
-            a.name.localeCompare(b.name)
+    if (filteredPlayers.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="padding: 10px; color: #888;">No games recorded on this champion.</td></tr>`;
+        updateHeaderSortArrows(
+            "#champion-leaderboard",
+            currentChampionSortKey,
+            currentChampionSortAsc,
         );
-    });
-
-    if (sortedPlayers.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" style="padding: 10px; color: #888;">No games recorded on this champion.</td></tr>`;
         return;
     }
 
-    tbody.innerHTML = sortedPlayers
-        .map(buildChampionLeaderboardRowHtml)
-        .join("");
+    // Calculate permanent ranks based strictly on Win Rate (descending)
+    const rankedPlayers = [...filteredPlayers].sort((a, b) => {
+        const diff = b.winRate - a.winRate;
+        if (diff !== 0) return diff;
+        const gamesDiff = b.games - a.games;
+        if (gamesDiff !== 0) return gamesDiff;
+        return a.name.localeCompare(b.name);
+    });
+
+    let currentRank = 1;
+    const playersWithPermanentRanks = rankedPlayers.map((p, index) => {
+        if (index > 0) {
+            const prev = rankedPlayers[index - 1];
+            if (p.winRate !== prev.winRate || p.games !== prev.games) {
+                currentRank = index + 1;
+            }
+        }
+        return { ...p, displayRank: currentRank };
+    });
+
+    // Sort rows based on the active table column
+    const sortedPlayers = [...playersWithPermanentRanks].sort((a, b) => {
+        if (currentChampionSortKey === "player") {
+            const cmp = a.name.localeCompare(b.name);
+            if (cmp !== 0) return currentChampionSortAsc ? cmp : -cmp;
+            const wrDiff = b.winRate - a.winRate;
+            if (wrDiff !== 0) return wrDiff;
+            return b.games - a.games;
+        } else if (currentChampionSortKey === "games") {
+            const diff = a.games - b.games;
+            if (diff !== 0) return currentChampionSortAsc ? diff : -diff;
+            const wrDiff = a.winRate - b.winRate;
+            if (wrDiff !== 0) return -wrDiff;
+        } else if (currentChampionSortKey === "kda") {
+            const diff = a.kdaRatio - b.kdaRatio;
+            if (diff !== 0) return currentChampionSortAsc ? diff : -diff;
+            const wrDiff = a.winRate - b.winRate;
+            if (wrDiff !== 0) return -wrDiff;
+        } else if (currentChampionSortKey === "rank") {
+            const diff = a.displayRank - b.displayRank;
+            if (diff !== 0) return currentChampionSortAsc ? diff : -diff;
+        } else {
+            // "wr" and "wl"
+            const diff = a.winRate - b.winRate;
+            if (diff !== 0) return currentChampionSortAsc ? diff : -diff;
+            const gamesDiff = a.games - b.games;
+            if (gamesDiff !== 0) return -gamesDiff;
+        }
+
+        return a.name.localeCompare(b.name);
+    });
+
+    const effectiveLimit = championIsShowAllExpanded
+        ? sortedPlayers.length
+        : championVisibleCount;
+    const visiblePlayers = sortedPlayers.slice(0, effectiveLimit);
+
+    let rowsHtml = visiblePlayers.map(buildChampionLeaderboardRowHtml).join("");
+
+    if (sortedPlayers.length > 10) {
+        if (championIsShowAllExpanded) {
+            rowsHtml += `
+                <tr id="champion-action-row" class="table-action-row">
+                    <td colspan="6">
+                        <span id="champion-show-less-btn" class="duo-action-btn">
+                            <strong>Show top 10 only ▲</strong>
+                        </span>
+                    </td>
+                </tr>
+            `;
+        } else if (sortedPlayers.length > championVisibleCount) {
+            const remaining = sortedPlayers.length - championVisibleCount;
+            const nextBatchSize = Math.min(10, remaining);
+            rowsHtml += `
+                <tr id="champion-action-row" class="table-action-row">
+                    <td colspan="6">
+                        <span id="champion-show-more-btn" class="duo-action-btn">
+                            <strong>Show ${nextBatchSize} more (${remaining} remaining) ▼</strong>
+                        </span>
+                        <span class="duo-action-separator">|</span>
+                        <span id="champion-show-all-btn" class="duo-action-btn">
+                            <strong>Show all (${sortedPlayers.length})</strong>
+                        </span>
+                    </td>
+                </tr>
+            `;
+        }
+    }
+
+    tbody.innerHTML = rowsHtml;
+    updateHeaderSortArrows(
+        "#champion-leaderboard",
+        currentChampionSortKey,
+        currentChampionSortAsc,
+    );
 }
 
 // Render filtered list of player options for duo custom dropdown
@@ -750,7 +849,7 @@ function renderDuoLeaderboard() {
         ) {
             return false;
         }
-        if (duoShowAllGames || currentDuoSortKey === "games") return true;
+        if (duoShowAllGames) return true;
         return d.games >= 5;
     });
 
@@ -764,7 +863,7 @@ function renderDuoLeaderboard() {
         return;
     }
 
-    // 1. Calculate permanent ranks based strictly on Win Rate (descending)
+    // Calculate permanent ranks based strictly on Win Rate (descending)
     const rankedDuos = [...filteredDuos].sort((a, b) => {
         const diff = b.winRate - a.winRate;
         if (diff !== 0) return diff;
@@ -786,7 +885,7 @@ function renderDuoLeaderboard() {
         return { ...d, displayRank: currentRank };
     });
 
-    // 2. Sort rows based on the active table column
+    // Sort rows based on the active table column
     const sortedDuos = [...duosWithPermanentRanks].sort((a, b) => {
         const botNameA = puuidToName[a.botPuuid] || "Unknown";
         const botNameB = puuidToName[b.botPuuid] || "Unknown";
@@ -1032,16 +1131,18 @@ function setupFlexLeaderboardSorting() {
         });
 }
 
-// Bind event listeners for custom champion searchable dropdown
+// Bind event listeners for custom champion searchable dropdown & table sorting
 function setupChampionLeaderboard() {
     const container = document.getElementById("champ-select-container");
     const searchInput = document.getElementById("champion-search");
     const dropdown = document.getElementById("champion-dropdown");
-    const modeSelect = document.getElementById("champion-mode-select");
+    const tbody = document.getElementById("champion-leaderboard-body");
 
     const showAllCb = document.getElementById("champion-show-all-cb");
     showAllCb?.addEventListener("change", (e) => {
         championShowAllGames = e.target.checked;
+        championVisibleCount = 10;
+        championIsShowAllExpanded = false;
         renderChampionLeaderboard();
     });
 
@@ -1054,6 +1155,8 @@ function setupChampionLeaderboard() {
     searchInput?.addEventListener("input", () => {
         renderChampionDropdownOptions(searchInput.value);
         dropdown?.classList.add("open");
+        championVisibleCount = 10;
+        championIsShowAllExpanded = false;
         loadChampionLeaderboard();
     });
 
@@ -1067,6 +1170,8 @@ function setupChampionLeaderboard() {
         searchInput.value = "";
         dropdown.classList.remove("open");
         searchInput.blur();
+        championVisibleCount = 10;
+        championIsShowAllExpanded = false;
         loadChampionLeaderboard(championId);
     });
 
@@ -1076,9 +1181,35 @@ function setupChampionLeaderboard() {
         }
     });
 
-    modeSelect?.addEventListener("change", (event) => {
-        championLeaderboardMode = event.target.value;
-        renderChampionLeaderboard();
+    document
+        .querySelectorAll("#champion-leaderboard th[data-sort]")
+        .forEach((th) => {
+            th.addEventListener("click", () => {
+                const sortKey = th.getAttribute("data-sort");
+                if (currentChampionSortKey === sortKey) {
+                    currentChampionSortAsc = !currentChampionSortAsc;
+                } else {
+                    currentChampionSortKey = sortKey;
+                    currentChampionSortAsc = ["rank", "player"].includes(
+                        sortKey,
+                    );
+                }
+                renderChampionLeaderboard();
+            });
+        });
+
+    tbody?.addEventListener("click", (e) => {
+        if (e.target.closest("#champion-show-more-btn")) {
+            championVisibleCount += 10;
+            renderChampionLeaderboard();
+        } else if (e.target.closest("#champion-show-all-btn")) {
+            championIsShowAllExpanded = true;
+            renderChampionLeaderboard();
+        } else if (e.target.closest("#champion-show-less-btn")) {
+            championIsShowAllExpanded = false;
+            championVisibleCount = 10;
+            renderChampionLeaderboard();
+        }
     });
 }
 
@@ -1298,6 +1429,13 @@ async function loadChampionLeaderboard(explicitChampionId = null) {
                 losses: playerStats?.losses || 0,
                 games: playerStats?.games || 0,
                 winRate: playerStats?.winRate || 0,
+                kills: playerStats?.kills || 0,
+                deaths: playerStats?.deaths || 0,
+                assists: playerStats?.assists || 0,
+                avgKills: playerStats?.avgKills || 0,
+                avgDeaths: playerStats?.avgDeaths || 0,
+                avgAssists: playerStats?.avgAssists || 0,
+                kdaRatio: playerStats?.kdaRatio || 0,
             };
         });
 

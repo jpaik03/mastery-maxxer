@@ -220,7 +220,11 @@ tbody th .role-header-content {
   background-color: #dfe3e6;
 }
 
-#leaderboard,
+#leaderboard {
+  width: 50%;
+  margin: 10px auto 30px auto;
+}
+
 #duo-leaderboard {
   width: 40%;
   margin: 10px auto 30px auto;
@@ -314,11 +318,18 @@ tbody th .role-header-content {
   width: 12%;
 }
 
+#leaderboard,
 #champion-leaderboard,
 #role-leaderboard,
 #duo-leaderboard,
 #pings-leaderboard {
   font-size: 13px !important;
+}
+
+#leaderboard tr th,
+#leaderboard tr td {
+  height: 28px;
+  padding: 6px 8px;
 }
 
 #pings-leaderboard {

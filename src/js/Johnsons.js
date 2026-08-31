@@ -1379,7 +1379,7 @@ async function initChampionData() {
 
         const headerEl = document.getElementById("header-champs");
         if (headerEl) {
-            headerEl.innerHTML = `Mastery Champions (out of ${totalChampionCount})<span class="sort-arrow"></span>`;
+            headerEl.innerHTML = `Unique Champs Played (out of ${totalChampionCount})<span class="sort-arrow"></span>`;
         }
 
         // Sort names ignoring apostrophes and special characters

@@ -205,6 +205,28 @@ export async function fetchChampionLeaderboard(championId) {
 }
 
 /*
+ * Name:        fetchRoleLeaderboard()
+ * Arguments:   A string representing the role ('TOP', 'JGL', 'MID', 'BOT',
+ *              'SUP').
+ * Returns:     A promise resolving to aggregate stats and win rates for the
+ *              role.
+ * Description: Calls the server API to aggregate combined Flex and Ranked 5v5
+ *              match data across all players for a given champion.
+ * Effects:     None.
+ */
+export async function fetchRoleLeaderboard(role) {
+    const response = await fetch(
+        `/api/role-leaderboard?role=${encodeURIComponent(role)}`,
+    );
+
+    const result = await response.json();
+    if (!response.ok) {
+        throw new Error(result.error || "Failed to load role leaderboard");
+    }
+    return result;
+}
+
+/*
  * Name:        fetchDuoLeaderboard()
  * Arguments:   None.
  * Returns:     A promise resolving to aggregate stats and win rates for all

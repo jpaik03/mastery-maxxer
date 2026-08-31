@@ -266,13 +266,59 @@
             <tr>
               <th data-sort="rank">Rank<span class="sort-arrow"></span></th>
               <th data-sort="player">Player<span class="sort-arrow"></span></th>
+              <th data-sort="games">Games<span class="sort-arrow"></span></th>
               <th data-sort="wl">W-L<span class="sort-arrow"></span></th>
               <th data-sort="wr">Win Rate<span class="sort-arrow"></span></th>
               <th data-sort="kda">KDA<span class="sort-arrow"></span></th>
-              <th data-sort="games">Games<span class="sort-arrow"></span></th>
             </tr>
           </thead>
           <tbody id="champion-leaderboard-body"></tbody>
+        </table>
+
+        <!-- Role Winrate -->
+        <h3>Role Winrate</h3>
+        <div id="role-controls">
+          <label class="role-dropdown-label">
+            <strong>Role:</strong>
+            <div class="custom-role-select" id="role-select-container">
+              <input
+                type="text"
+                id="role-search"
+                placeholder="Select role..."
+                readonly
+                autocomplete="off" />
+              <span class="custom-select-arrow">▼</span>
+              <div class="custom-select-dropdown" id="role-dropdown">
+                <div class="custom-select-option" data-role="TOP">Top</div>
+                <div class="custom-select-option" data-role="JGL">Jungle</div>
+                <div class="custom-select-option" data-role="MID">Middle</div>
+                <div class="custom-select-option" data-role="BOT">Bottom</div>
+                <div class="custom-select-option" data-role="SUP">Support</div>
+              </div>
+            </div>
+          </label>
+          <label id="role-min-games-label">
+            <input type="checkbox" id="role-show-all-cb" />
+            Show all (< 5 games)
+          </label>
+        </div>
+        <div id="role-icon-container"></div>
+
+        <!-- Role Leaderboard -->
+        <table id="role-leaderboard">
+          <thead>
+            <tr>
+              <th data-sort="rank">Rank<span class="sort-arrow"></span></th>
+              <th data-sort="player">Player<span class="sort-arrow"></span></th>
+              <th data-sort="games">Games<span class="sort-arrow"></span></th>
+              <th data-sort="wl">W-L<span class="sort-arrow"></span></th>
+              <th data-sort="wr">Win Rate<span class="sort-arrow"></span></th>
+              <th data-sort="kda">KDA<span class="sort-arrow"></span></th>
+              <th data-sort="cs">CS/M<span class="sort-arrow"></span></th>
+              <th>Most Played</th>
+            </tr>
+          </thead>
+          <tbody id="role-leaderboard-body"></tbody>
         </table>
 
         <!-- Bottom Lane Duos -->
@@ -298,6 +344,7 @@
           </label>
         </div>
 
+        <!-- Bottom Lane Duos -->
         <table id="duo-leaderboard">
           <thead>
             <tr>
@@ -320,9 +367,9 @@
                   SUP </span
                 ><span class="sort-arrow"></span>
               </th>
+              <th data-sort="games">Games<span class="sort-arrow"></span></th>
               <th data-sort="wl">W-L<span class="sort-arrow"></span></th>
               <th data-sort="wr">Win Rate<span class="sort-arrow"></span></th>
-              <th data-sort="games">Games<span class="sort-arrow"></span></th>
             </tr>
           </thead>
           <tbody id="duo-leaderboard-body"></tbody>
